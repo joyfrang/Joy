@@ -87,7 +87,7 @@ branch(User user) {
 
 // Shared reference with atomic RC
 branch(share User user) {
-    user.name = "Zahra"
+    user.name = "Nitam"
 }
 
 Key Async Paradigm Features
