@@ -1,115 +1,158 @@
-# Joy. The Web Programming Framework and Language
+# Joy: The Web Programming Framework and Language
 
 ## Philosophy
 
-Joy is a modern web development framework paired with its own programming language. It's designed to replace JavaScript and TypeScript with a simpler, more efficient, and developer-friendly alternative.
+Joy is a complete ecosystem for building modern web applications and services, consisting of a new programming language and its integrated framework.
 
-Joy applications compile to WebAssembly (WASM) for the web and can also run as native binaries on servers via LLVM. This results in efficient performance across CPU usage, memory consumption, binary size, concurrency, and startup time.
+Applications compile to WebAssembly (WASM) for the browser and native binaries for the server, ensuring high performance. Joy is designed as a cohesive whole, providing a clear, productive, and reliable development experience out of the box.
 
-Built from scratch to address JavaScript’s pain points, Joy offers a clean and enjoyable developer experience.
+## The Joy Language
 
-## Memory Model
+### Data Modeling with `thing`
 
-Joy uses automatic reference counting (RC) to manage memory safely. The compiler handles all details, so developers don’t need to worry about manual memory management.
+Joy's primary tool for data modeling is the `thing` keyword, which creates robust Algebraic Data Types (ADTs). This allows you to define an object that can exist in one of several distinct states.
 
-* By default, values are cloned on assignment.
-* Shared access requires the `share` keyword.
-* No manual `inc_ref`/`dec_ref` or `clone()` calls in user code.
+The `know` expression provides exhaustive pattern matching. To ensure clarity and correctness, the types of all bound variables must be explicitly declared within the pattern.
 
 ```c
-User a = b         // Deep copy clone
-User a = share b   // Shared reference via RC
-```
+// A User can be one of two variants: Admin or Viewer.
+thing User {
+    Admin(u5 id, str name, u3 accessLevel)
+    Viewer(u5 id, str name)
+}
 
-### Assignment Rules
-
-| Type             | Behavior          |
-| ---------------- | ----------------- |
-| Primitive values | Value is copied   |
-| Objects          | Cloned by default |
-| `share` keyword  | Shared via RC     |
-
-The compiler inserts reference count updates as needed.
-
-### Preventing Cycles
-
-Circular RC is disallowed. The compiler rejects reference cycles. Use IDs, flattened structures, or one-way ownership instead:
-
-```c
-thing Node {
-    u5 id
-    share Node[] children
-    u5 parent_id   // avoids backref
+// In this `know` block, the types for `name` and `level` are explicitly
+// declared, preventing ambiguity and errors.
+noth printUserDetails(User user) {
+    know user {
+        Admin(_, str name, u3 level) => print($"Admin: {name}, Level: {level}"),
+        Viewer(_, str name) => print($"Viewer: {name}")
+    }
 }
 ```
 
-## Async Concurrency: `branch` Blocks
+### Closures
 
-`branch` creates structured, safe async tasks:
+Anonymous functions, or closures, follow the same declaration syntax as named functions, just without a name. The compiler identifies them by the context in which they are defined.
+
+**Syntax:** `ReturnType(params...) { ... }`
+
+Variables from the parent scope are not captured automatically; they must be explicitly brought into the closure's scope using the `bring` keyword within the parameter list.
 
 ```c
-User user = ("Matin")
-
-// Cloned copy
-branch(User user) {
-    print(user.name)
-}
-
-// Shared reference
-branch(share User user) {
-    user.name = "Notmatin"
+// A closure that brings `userName` into its scope and returns a `str`.
+str(bring str userName) {
+    return $"Greetings, {userName}."
 }
 ```
 
-### Features
+### Concurrency and Memory
 
-1. Structured Concurrency: Children cancel when their parent scope exits.
-2. Cancellation & Timeouts: Built-in token and timeout support.
-3. Select Expression: Wait on multiple channels or timers.
-4. Result Propagation: `branch` can return `Result<T, E>`.
-5. Flow Control: Channels support `Wait`, `DropFirst`, `DropLast`, `SuspendSender`.
-6. Diagnostics: `$ lets inspect async` shows live tasks and traces.
+Memory management is automatic via ARC, with values being cloned by default and shared explicitly with the `share` keyword.
 
-#### Argument Modes
+Asynchronous tasks are launched with `branch` blocks. These tasks are tied to their parent scope's lifecycle and are automatically cleaned up. For long-running background tasks that must outlive their creator (e.g., sending a post-registration email), an explicit `timeout` parameter can be provided to the `branch` itself.
 
-| Syntax                      | Behavior                 |
-| --------------------------- | ------------------------ |
-| `branch(Type x)`            | By-value clone (default) |
-| `branch(share Type x)`      | Shared via atomic RC     |
-| `branch(read share Type x)` | Shared, read-only        |
+## The Joy Web Framework
 
-### Example: Web Build
+The framework extends the language's principles to web development. Functions are server-side by default, establishing a secure-by-default architecture.
+
+*   **Component Model:**
+    *   **`Layout`:** A reusable wrapper for page structure.
+    *   **`View`:** A static, server-rendered component.
+    *   **`Island`:** An interactive client-side component for state and events.
+*   **Server RPC:** An `Island` can call back to the server using the `server()` function. This function takes a closure which it executes on the server. The type of the returned channel is inferred directly from the closure's explicit return type declaration.
+    *   `server( str() { ... } )` returns a `chan<str>`.
+    *   `server( User() { ... } )` returns a `chan<User>`.
+*   **Asynchronous UI:** The `<Wait>` component declaratively handles async operations by consuming a channel. Timeouts are specified at the point of consumption.
+
+## A Complete Example: The "Joyful Profile" App
+
+This application demonstrates the seamless integration of Joy's language and framework features.
+
+```c
+// main.joy - Application Entry Point & Components
+
+// --- Data Models and Server-Side Logic ---
+
+thing User {
+    Admin(u5 id, str name, u3 accessLevel)
+    Viewer(u5 id, str name)
+}
+
+User getUserFromDb(u5 id) {
+    return Admin(id: id, name: "Matin", accessLevel: 250)
+}
+
+str generateNewCodename() {
+    return "Phoenix"
+}
+
+// --- UI Components ---
+
+Layout MainLayout(Renderable children) {
+    return <html>
+        <head><title>Joyful Profile</title></head>
+        <body>
+            <div class="app-container">{children}</div>
+        </body>
+    </html>
+}
+
+#page("/")
+View HomePage() {
+    User user = getUserFromDb(id: 1)
+    return <UserProfile user={user} />
+}
+
+Island UserProfile(User user) {
+    str codename = "Nomad"
+
+    // The type of `codenameChannel` is `chan<str>` because the closure
+    // passed to `server()` is explicitly defined to return a `str`.
+    chan<str> codenameChannel = server( str() {
+        return generateNewCodename()
+    })
+
+    // The component's render output.
+    return <div>
+        {know user {
+            Admin(_, str name, u3 level) => {
+                <h1>Admin Panel: {name}</h1>
+                <p>Access Level: {level}</p>
+            },
+            Viewer(_, str name) => {
+                <h1>Welcome, {name}!</h1>
+            }
+        }}
+
+        <hr />
+
+        // We consume the channel, specifying a 5-second timeout.
+        <Wait for={codenameChannel(timeout: 5s)}
+              fallback={<p>Generating new codename...</p>}
+              timeout={<p>Error: Request timed out.</p>}>
+
+            // This closure runs on the client when data is received.
+            {(str newName) => {
+                codename = newName
+                return <h2>Your new codename is: {codename}</h2>
+            }}
+        </Wait>
+    </div>
+}
+```
+
+## Tooling: The `lets` CLI
+
+Joy includes `lets`, a command-line tool for the entire development workflow.
 
 ```bash
-$ lets build --target web --release
-```
+# Create a new project named "joy-app"
+$ lets make project joy-app
 
-Produces a `.wasm` module plus JS loader. Integrates with Webpack/Vite via the Joy plugin.
+# Run the development server
+$ lets run
 
-## CLI Tools
-
-Joy includes a command-line interface (CLI) tool called `lets`. This tool is used to manage and run your projects. For example:
-
-```bash
-$ lets run          # Start the app
-$ lets test         # Run all tests
-$ lets make project joy-eg  # Create a new project
-```
-
-## Syntax Examples
-
-```c
-Wapp entry() {
-    Wapp wapp = (8080, false)
-    -> wapp
-}
-
-View index() {
-    -> <h1>Wow!</h1><Counter sth="85"/>
-}
-
-Island counter(int sth) {
-    i5 num = 0
-    -> <button @click=(num+=1)>Number is {num}</button>
-}
+# Build a production-ready web application
+$ lets build --release
 ```
