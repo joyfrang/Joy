@@ -1,9 +1,10 @@
 # Joy. The Web Programming Framework and Language
 
-CLI Tools
+## CLI Tools
 
-Joy uses lets as the command-line tool for running commands. E.g.:
+Joy uses `lets` as the command-line tool for running commands. E.g.:
 
+```bash
 $ lets run
 ...
 
@@ -12,8 +13,9 @@ $ lets test
 
 $ lets make project joy-eg
 ...
+```
 
-Philosophy
+## Philosophy
 
 Joy is a modern web framework with its programming language, focusing on being a simple, feature-rich, and performant replacement for JavaScript in web development. The Joy programming language is designed to work only with the framework, so from now on, we'll use the name "Joy" interchangeably for both of them.
 
@@ -21,63 +23,59 @@ Joy compiles to WASM and runs both in the browser and on the server, with solid 
 
 Its syntax is designed to be readable, maintainable, and a genuine joy to write. Joy aims to help JavaScript and TypeScript developers rediscover the fun in web programming.
 
-Memory Model
+## Memory Model
 
-🧠 Joy Memory Model Proposal (Updated July 2025)
+### 🧠 Joy Memory Model Proposal (Updated July 2025)
 
-This section outlines how Joy manages memory and concurrency using safe automatic reference counting (RC), clone-by-default semantics, and branch blocks for async.
+This section outlines how Joy manages memory and concurrency using safe automatic reference counting (RC), clone-by-default semantics, and `branch` blocks for async.
 
-✅ Core Memory Model
+### ✅ Core Memory Model
 
 Joy uses automatic reference counting, handled entirely by the compiler.
 
-By default, values are cloned when assigned (deep copy).
+* By default, values are cloned when assigned (deep copy).
+* Sharing must be explicitly marked with the `share` keyword.
+* Developers never manually write `inc_ref`, `dec_ref`, or `clone`.
 
-Sharing must be explicitly marked with the share keyword.
-
-Developers never manually write inc_ref, dec_ref, or clone.
-
-
+```c
 User a = b         // Default: clone b into a (deep copy)
 User a = share b   // Opt-in: share reference (RC applies)
+```
 
-📦 Assignment Behavior
+### 📦 Assignment Behavior
 
-Case	Behavior
+| Case                 | Behavior             |
+| -------------------- | -------------------- |
+| Primitive types      | Value copied (no RC) |
+| Object types         | Cloned by default    |
+| `share` keyword used | Shared via RC        |
 
-Primitive types	Value copied (no RC)
-Object types	Cloned by default
-share keyword used	Shared via RC
+The compiler automatically inserts reference count updates (`inc_ref`, `dec_ref`) when using `share`.
 
+### 🌀 Cycles and Memory Leaks
 
-The compiler automatically inserts reference count updates (inc_ref, dec_ref) when using share.
-
-🌀 Cycles and Memory Leaks
-
-Cyclic references are disallowed. The compiler rejects reference cycles.
-
-Data must be modeled without cyclic ownership.
-
+* Cyclic references are disallowed. The compiler rejects reference cycles.
+* Data must be modeled without cyclic ownership.
 
 Alternatives:
 
-Use IDs instead of object references
+* Use IDs instead of object references
+* Flatten nested data
+* Model parent-child with one-way ownership
 
-Flatten nested data
-
-Model parent-child with one-way ownership
-
-
+```c
 thing Node {
     u5 id
     share Node[] children  // ok
     u5? parent_id           // avoids backref
 }
+```
 
-🚀 branch and Concurrency
+## 🚀 `branch` and Concurrency
 
-Joy introduces branch blocks for async and concurrency. They provide safe, structured, and ergonomic patterns for non-blocking code:
+Joy introduces `branch` blocks for async and concurrency. They provide safe, structured, and ergonomic patterns for non-blocking code:
 
+```c
 User user = User("Matin")
 
 // Clone-by-value into the task (default)
@@ -87,82 +85,89 @@ branch(User user) {
 
 // Shared reference with atomic RC
 branch(share User user) {
-    user.name = "Nitam"
+    user.name = "Zahra"
 }
+```
 
-Key Async Paradigm Features
+### Key Async Paradigm Features
 
-1. Structured Concurrency
+#### 1. Structured Concurrency
 
 Branches are tied to the parent lexical scope or task. Compiler ensures child branches cancel when the scope exits.
 
+```c
 withScope(scope) {
   branch(User user) { /*...*/ }
   branch(share User cfg) { /*...*/ }
 } // auto-cancels both
+```
 
-2. Cancellation & Deadlines
+#### 2. Cancellation & Deadlines
 
 Built-in timeout and cancellation token support:
 
+```c
 branch(User user, timeout(2s)) { /* auto-cancel */ }
 branch(User user, CancelCtx ctx) { /* cancel via ctx */ }
+```
 
-3. Select Expression for Concurrency
+#### 3. Select Expression for Concurrency
 
 A concise syntax to await multiple channels or timeouts:
 
+```c
 select {
   case msg = chan1(): print(msg)
   case _ = chan2(): doOther()
   case _ = timeout(1s): print("timed out")
 }
+```
 
-4. Error Propagation & Aggregation
+#### 4. Error Propagation & Aggregation
 
-Branches return Result<T, E> values that can be awaited:
+Branches return `Result<T, E>` values that can be awaited:
 
+```c
 Result<Data, Error> branch fetchData() { /*...*/ }
 Result<Data, Error> result = await fetchData().untill(5s)
 match result {
   Ok(data)  => render(data)
   Err(err)  => handleError(err)
 }
+```
 
-5. Backpressure & Flow Control
+#### 5. Backpressure & Flow Control
 
-Channels support policies like Wait, DropFirst, DropLast, and SuspendSender. Producers can await chan.available() or check chan.isFull().
+Channels support policies like `Wait`, `DropFirst`, `DropLast`, and `SuspendSender`. Producers can await `chan.available()` or check `chan.isFull()`.
 
-6. Diagnostic Tooling & Tracing
+#### 6. Diagnostic Tooling & Tracing
 
+```bash
 $ lets inspect async
+```
 
 Outputs live tasks, stack traces, and channel states. Developers can trace task lifecycles for performance profiling.
 
-branch Argument Modes
+### `branch` Argument Modes
 
-Syntax	Behavior
+| Syntax                      | Behavior                           |
+| --------------------------- | ---------------------------------- |
+| `branch(Type x)`            | Cloned into task (default)         |
+| `branch(share Type x)`      | Shared, compiler applies Atomic RC |
+| `branch(read share Type x)` | Shared, read-only                  |
 
-branch(Type x)	Cloned into task (default)
-branch(share Type x)	Shared, compiler applies Atomic RC
-branch(read share Type x)	Shared, read-only
+This explicit model avoids implicit data races. Shared references must be opt-in with `share`.
 
+### 🔒 Developer Simplicity
 
-This explicit model avoids implicit data races. Shared references must be opt-in with share.
+* No `rc<T>`, `arc<T>`, `clone()` needed in user code.
+* Compiler manages safety.
+* Shared state requires opt-in via `share`.
+* Clone-by-default guarantees pure semantics unless overridden.
 
-🔒 Developer Simplicity
+## Syntax
 
-No rc<T>, arc<T>, clone() needed in user code.
-
-Compiler manages safety.
-
-Shared state requires opt-in via share.
-
-Clone-by-default guarantees pure semantics unless overridden.
-
-
-Syntax
-
+```c
 Wapp entry() {
     Wapp wapp = (8080, false)
     -> wapp
@@ -176,7 +181,9 @@ Island counter(int sth) {
     i5 num = 0
     -> <button @click=(num+=1)>Number is {num}</button>
 }
+```
 
+```c
 thing User {
     Admin(int level)
     User(int id)
@@ -194,13 +201,17 @@ noth sth() {
         }
     }
 }
+```
 
+```c
 drop unsafe rand
 
 i5 rnd() {
     -> unsafe rand.num(1, 10)
 }
+```
 
+```c
 cont Eatable {
     bit eat(str reason)
 }
@@ -211,7 +222,9 @@ impl User:Eatable {
         -> 1
     }
 }
+```
 
+```c
 pub noth entry() {
     i5 num = readLine()
     num = double(num!)
@@ -225,7 +238,9 @@ int double(int! input) {
 noth triple(int!! input) {
     input!! *= 3
 }
+```
 
+```c
 View rich() {
     bit rich = getStatus()
     -> <p>Wow I'm {rich}!</p>
@@ -241,7 +256,9 @@ bit getStatus() {
 noth noname() {
     _ = 10
 }
+```
 
+```c
 noth some() {
     chan<bit> channel = (5, Wait)
 
@@ -251,7 +268,9 @@ noth some() {
 
     bit res = channel().until(10s)
 }
+```
 
+```c
 noth entry() {
     bit[] bits = [1, 0, 1]
     bit[...] moreBits = [1, 0, 0, 1]
@@ -267,7 +286,9 @@ noth entry() {
         // loop with index
     }
 }
+```
 
+```c
 Island counter() {
     chan<str> placeholder = server(() => {
         str text = db.query(/*...*/)
@@ -280,4 +301,4 @@ Island counter() {
         <strong>I got the {ph}!</strong>
        </Wait>
 }
-
+```
