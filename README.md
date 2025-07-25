@@ -25,7 +25,7 @@ Its syntax is designed to be readable, maintainable, and a genuine joy to write.
 
 ## Memory Model
 
-### 🧠 Joy Memory Model Proposal (Updated July 2025)
+### 🧠 Joy Memory Model
 
 This section outlines how Joy manages memory and concurrency using safe automatic reference counting (RC), clone-by-default semantics, and `branch` blocks for async.
 
@@ -85,7 +85,7 @@ branch(User user) {
 
 // Shared reference with atomic RC
 branch(share User user) {
-    user.name = "Zahra"
+    user.name = "Notmatin"
 }
 ```
 
