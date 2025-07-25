@@ -1,9 +1,9 @@
 # Joy. The Web Programming Framework and Language
 
-## CLI Tools
+CLI Tools
 
-Joy uses `lets` as the command-line tool for running commands. E.g.:
-```bash
+Joy uses lets as the command-line tool for running commands. E.g.:
+
 $ lets run
 ...
 
@@ -12,191 +12,272 @@ $ lets test
 
 $ lets make project joy-eg
 ...
-```
 
-## Philosophy
+Philosophy
 
 Joy is a modern web framework with its programming language, focusing on being a simple, feature-rich, and performant replacement for JavaScript in web development. The Joy programming language is designed to work only with the framework, so from now on, we'll use the name "Joy" interchangeably for both of them.
 
-Joy compiles to WASM and runs both in the browser and on the server, with decent CPU-bound performance, RAM usage, binary size, concurrency, and startup time. Generally, Joy was engineered from the ground up to address the JS ecosystem's massive performance issues, with an optimized infrastructure, instead of temporary band-aids.
+Joy compiles to WASM and runs both in the browser and on the server, with solid CPU-bound performance, efficient memory use, small binary size, fast startup time, and good concurrency support. Joy was built from the ground up to address performance issues in the JS ecosystem with real architectural solutions.
 
-Joy's syntax is also made to be a Joy to read, write, and maintain.
+Its syntax is designed to be readable, maintainable, and a genuine joy to write. Joy aims to help JavaScript and TypeScript developers rediscover the fun in web programming.
 
-Joy was made to make JS/TS devs enjoy programming again.
+Memory Model
 
-## Syntax
+🧠 Joy Memory Model Proposal (Updated July 2025)
 
-```c
-// Wapp is a Web App type
-Wapp entry() {
-	Wapp wapp = (port = 8080, tls = false) // Initialize with params
-	-> wapp // Return
+This section outlines how Joy manages memory and concurrency using safe automatic reference counting (RC), clone-by-default semantics, and branch blocks for async.
+
+✅ Core Memory Model
+
+Joy uses automatic reference counting, handled entirely by the compiler.
+
+By default, values are cloned when assigned (deep copy).
+
+Sharing must be explicitly marked with the share keyword.
+
+Developers never manually write inc_ref, dec_ref, or clone.
+
+
+User a = b         // Default: clone b into a (deep copy)
+User a = share b   // Opt-in: share reference (RC applies)
+
+📦 Assignment Behavior
+
+Case	Behavior
+
+Primitive types	Value copied (no RC)
+Object types	Cloned by default
+share keyword used	Shared via RC
+
+
+The compiler automatically inserts reference count updates (inc_ref, dec_ref) when using share.
+
+🌀 Cycles and Memory Leaks
+
+Cyclic references are disallowed. The compiler rejects reference cycles.
+
+Data must be modeled without cyclic ownership.
+
+
+Alternatives:
+
+Use IDs instead of object references
+
+Flatten nested data
+
+Model parent-child with one-way ownership
+
+
+thing Node {
+    u5 id
+    share Node[] children  // ok
+    u5? parent_id           // avoids backref
 }
 
-// A static component
+🚀 branch and Concurrency
+
+Joy introduces branch blocks for async and concurrency. They provide safe, structured, and ergonomic patterns for non-blocking code:
+
+User user = User("Matin")
+
+// Clone-by-value into the task (default)
+branch(User user) {
+    print(user.name)
+}
+
+// Shared reference with atomic RC
+branch(share User user) {
+    user.name = "Zahra"
+}
+
+Key Async Paradigm Features
+
+1. Structured Concurrency
+
+Branches are tied to the parent lexical scope or task. Compiler ensures child branches cancel when the scope exits.
+
+withScope(scope) {
+  branch(User user) { /*...*/ }
+  branch(share User cfg) { /*...*/ }
+} // auto-cancels both
+
+2. Cancellation & Deadlines
+
+Built-in timeout and cancellation token support:
+
+branch(User user, timeout(2s)) { /* auto-cancel */ }
+branch(User user, CancelCtx ctx) { /* cancel via ctx */ }
+
+3. Select Expression for Concurrency
+
+A concise syntax to await multiple channels or timeouts:
+
+select {
+  case msg = chan1(): print(msg)
+  case _ = chan2(): doOther()
+  case _ = timeout(1s): print("timed out")
+}
+
+4. Error Propagation & Aggregation
+
+Branches return Result<T, E> values that can be awaited:
+
+Result<Data, Error> branch fetchData() { /*...*/ }
+Result<Data, Error> result = await fetchData().untill(5s)
+match result {
+  Ok(data)  => render(data)
+  Err(err)  => handleError(err)
+}
+
+5. Backpressure & Flow Control
+
+Channels support policies like Wait, DropFirst, DropLast, and SuspendSender. Producers can await chan.available() or check chan.isFull().
+
+6. Diagnostic Tooling & Tracing
+
+$ lets inspect async
+
+Outputs live tasks, stack traces, and channel states. Developers can trace task lifecycles for performance profiling.
+
+branch Argument Modes
+
+Syntax	Behavior
+
+branch(Type x)	Cloned into task (default)
+branch(share Type x)	Shared, compiler applies Atomic RC
+branch(read share Type x)	Shared, read-only
+
+
+This explicit model avoids implicit data races. Shared references must be opt-in with share.
+
+🔒 Developer Simplicity
+
+No rc<T>, arc<T>, clone() needed in user code.
+
+Compiler manages safety.
+
+Shared state requires opt-in via share.
+
+Clone-by-default guarantees pure semantics unless overridden.
+
+
+Syntax
+
+Wapp entry() {
+    Wapp wapp = (8080, false)
+    -> wapp
+}
+
 View index() {
-	-> <h1>Wow!</h1><Counter sth="85"/>
+    -> <h1>Wow!</h1><Counter sth="85"/>
 }
 
 Island counter(int sth) {
-	i5 num = 0
-	-> <button @click=(num+=1)>Number is {num}</button>
+    i5 num = 0
+    -> <button @click=(num+=1)>Number is {num}</button>
 }
 
-/// A shell for the island Counter, which will be sent by the server
-View _counter(int sth) {
-	-> <p>Loading...</p>
-}
-```
-
-```c
 thing User {
-	Admin(int level)
-	User(int id)
+    Admin(int level)
+    User(int id)
 }
 
 noth sth() {
-	User user = (69) // User is User, because the names are the same 
-	User anotherUser = Admin(20)
+    User user = User(69)
+    User anotherUser = Admin(20)
 
-	know user {
-		User(id) => print($$"User with id $$id, $ is the US Currency")
-		Admin(_) => {
-			int level = user.level // Because we "know" this is an admin, it's fine
-			print("Let's hack their account!")
-		}
-	}
+    know user {
+        User(id) => print($$"User with id $$id, $ is the US Currency")
+        Admin(_) => {
+            int level = user.level
+            print("Let's hack their account!")
+        }
+    }
 }
-```
 
-```c
-drop unsafe rand // Importing a non-approved package requires "unsafe"
+drop unsafe rand
 
-// i5 is 2^5 = 32 bit intager
 i5 rnd() {
-	// Interacting with non-approved libs also needs unsafe, to prevent
-	// "The NPM Effect"
-	-> unsafe rand.num(1, 10)
+    -> unsafe rand.num(1, 10)
 }
-```
 
-```c
-// Contracts are Interfaces
 cont Eatable {
-	bit eat(str why)
+    bit eat(str reason)
 }
 
 impl User:Eatable {
-	bit eat(str reason) {
-		print($"Matin ate user for reason: $reason")
-		-> 1
-	}
+    bit eat(str reason) {
+        print($"Matin ate user for reason: $reason")
+        -> 1
+    }
 }
-```
 
-```c
-// A public function
 pub noth entry() {
-	i5 num = readLine() // ReadLine from stdin
-	num = double(num!) // Passing a refrence to the int
-	triple(num!!) // Passing a mutable refrence to the int
+    i5 num = readLine()
+    num = double(num!)
+    triple(num!!)
 }
 
 int double(int! input) {
-	-> input! * 2 /* Derefrencing has the same syntax */ 
+    -> input! * 2
 }
 
 noth triple(int!! input) {
-	input!! *= 3
+    input!! *= 3
 }
-```
 
-```c
-// A function that returns a type View, named rich, with no arguments
 View rich() {
-	bit rich = getStatus()
-	-> <p>Wow I'm {rich}!</p>
+    bit rich = getStatus()
+    -> <p>Wow I'm {rich}!</p>
 }
 
-/// Runs on client, can use client-side APIs
 #client
 bit getStatus() {
-	// Calls a server-side function
-	noname()
-	-> 1
+    noname()
+    -> 1
 }
 
-/// A server function can use DB, internal networking, etc., but can't directly run code in the client for security reasons
 #server
 noth noname() {
-	// You can't remove "_ =" and you have to explicitly ignore the return value
-	_ = 10
+    _ = 10
 }
 
-```
-
-```c
 noth some() {
-	chan<bit> channel = (5, Wait) // make a channel with type int, buffered simply, you can don't specify the capacity to make it an unbuffered channel. Should also take an optional third argument (or second if capacity is not set) for behaviour when the channel is full, use C# channel things: Wait, DropFirst, DropLast, DropNew
-	// TOF means "Take Off". Async in Joy is like a plane
-	tof() {
-		// Do async work
-		channel(1) // Add 1 to the channel
-	}
+    chan<bit> channel = (5, Wait)
 
-	bit res = channel().until(10s/ms/us(micro)/ns/s/m/h) // empty call on a channel means wait until someone adds sth to this chan
+    branch() {
+        channel(1)
+    }
+
+    bit res = channel().until(10s)
 }
-```
 
-```c
 noth entry() {
-	bit[] bits = [1, 0, 1] // Make a dynamically sized array
-	bit[...] moreBits = [1, 0, 0, 1] // Equalivent to bit[4]
-	bit[100] evenMore = [1] // Room for appending without resizing
+    bit[] bits = [1, 0, 1]
+    bit[...] moreBits = [1, 0, 0, 1]
+    bit[100] evenMore = [1]
 
-	// We have Linq!
-	bit firstTrue = bits.whr(b == 1).frst()? // ? means get the value from the result, I'm fine with crashing my program if it doesn't return Ok
+    bit firstTrue = bits.whr(b == 1).frst()?
 
-	for(bit b in bits) {
-		// Sth
-	}
+    for(bit b in bits) {
+        // loop body
+    }
 
-	// Ints and Unsigned Ints numbers are powers of two
-	// u5 is a 2^5 = 32 bit unsigned intager
-	for((bit b, u5 i) in bits) {
-		// Do something with it
-	}
+    for((bit b, u5 i) in bits) {
+        // loop with index
+    }
 }
-```
-
-```c
-// ...
 
 Island counter() {
-	// An inline server anonymous server function. Returns a channel 
-	// We don't pass the channel in, so the runtime will make the channel for us,
-	// So it can't be used for anything other than this problem
-	// The runtime makes the channel this way:
-	// chan<str> = (1, Wait)
-	// TODO: Also handle streaming responses, and also one-directional channels,
-	// Use HTTP streaming under the hood
-	chan<str> placeholder = server(() => {
-		str text = db.query(/*...*/)
-		-> text
-	})
+    chan<str> placeholder = server(() => {
+        str text = db.query(/*...*/)
+        -> text
+    })
 
-	// Do other stuff
-
-	// str text = placeholder().untill(5s).unwrap()
-
-	// or consume it within a Wait element
-
-	// Wait is basically Suspense in React
-	-> <Wait for={str ph = placeholder().untill(5s)}
-			 fallback={<p>Wait!</p>}
-			 timeout={<p>Oops!</p>}>
-			 
-		<strong>I got the {ph}!</strong>
-	   </Wait>
+    -> <Wait for={str ph = placeholder().untill(5s)}
+             fallback={<p>Wait!</p>}
+             timeout={<p>Oops!</p>}>
+        <strong>I got the {ph}!</strong>
+       </Wait>
 }
-```
+
