@@ -1,171 +1,102 @@
 # Joy. The Web Programming Framework and Language
 
-## CLI Tools
-
-Joy uses `lets` as the command-line tool for running commands. E.g.:
-
-```bash
-$ lets run
-...
-
-$ lets test
-...
-
-$ lets make project joy-eg
-...
-```
-
 ## Philosophy
 
-Joy is a modern web framework with its programming language, focusing on being a simple, feature-rich, and performant replacement for JavaScript in web development. The Joy programming language is designed to work only with the framework, so from now on, we'll use the name "Joy" interchangeably for both of them.
+Joy is a modern web development framework paired with its own programming language. It's designed to replace JavaScript and TypeScript with a simpler, more efficient, and developer-friendly alternative.
 
-Joy compiles to WASM and runs both in the browser and on the server, with solid CPU-bound performance, efficient memory use, small binary size, fast startup time, and good concurrency support. Joy was built from the ground up to address performance issues in the JS ecosystem with real architectural solutions.
+Joy applications compile to WebAssembly (WASM) for the web and can also run as native binaries on servers via LLVM. This results in efficient performance across CPU usage, memory consumption, binary size, concurrency, and startup time.
 
-Its syntax is designed to be readable, maintainable, and a genuine joy to write. Joy aims to help JavaScript and TypeScript developers rediscover the fun in web programming.
+Built from scratch to address JavaScript’s pain points, Joy offers a clean and enjoyable developer experience.
 
 ## Memory Model
 
-### 🧠 Joy Memory Model
+Joy uses automatic reference counting (RC) to manage memory safely. The compiler handles all details, so developers don’t need to worry about manual memory management.
 
-This section outlines how Joy manages memory and concurrency using safe automatic reference counting (RC), clone-by-default semantics, and `branch` blocks for async.
-
-### ✅ Core Memory Model
-
-Joy uses automatic reference counting, handled entirely by the compiler.
-
-* By default, values are cloned when assigned (deep copy).
-* Sharing must be explicitly marked with the `share` keyword.
-* Developers never manually write `inc_ref`, `dec_ref`, or `clone`.
+* By default, values are cloned on assignment.
+* Shared access requires the `share` keyword.
+* No manual `inc_ref`/`dec_ref` or `clone()` calls in user code.
 
 ```c
-User a = b         // Default: clone b into a (deep copy)
-User a = share b   // Opt-in: share reference (RC applies)
+User a = b         // Deep copy clone
+User a = share b   // Shared reference via RC
 ```
 
-### 📦 Assignment Behavior
+### Assignment Rules
 
-| Case                 | Behavior             |
-| -------------------- | -------------------- |
-| Primitive types      | Value copied (no RC) |
-| Object types         | Cloned by default    |
-| `share` keyword used | Shared via RC        |
+| Type             | Behavior          |
+| ---------------- | ----------------- |
+| Primitive values | Value is copied   |
+| Objects          | Cloned by default |
+| `share` keyword  | Shared via RC     |
 
-The compiler automatically inserts reference count updates (`inc_ref`, `dec_ref`) when using `share`.
+The compiler inserts reference count updates as needed.
 
-### 🌀 Cycles and Memory Leaks
+### Preventing Cycles
 
-* Cyclic references are disallowed. The compiler rejects reference cycles.
-* Data must be modeled without cyclic ownership.
-
-Alternatives:
-
-* Use IDs instead of object references
-* Flatten nested data
-* Model parent-child with one-way ownership
+Circular RC is disallowed. The compiler rejects reference cycles. Use IDs, flattened structures, or one-way ownership instead:
 
 ```c
 thing Node {
     u5 id
-    share Node[] children  // ok
-    u5? parent_id           // avoids backref
+    share Node[] children
+    u5 parent_id   // avoids backref
 }
 ```
 
-## 🚀 `branch` and Concurrency
+## Async Concurrency: `branch` Blocks
 
-Joy introduces `branch` blocks for async and concurrency. They provide safe, structured, and ergonomic patterns for non-blocking code:
+`branch` creates structured, safe async tasks:
 
 ```c
-User user = User("Matin")
+User user = ("Matin")
 
-// Clone-by-value into the task (default)
+// Cloned copy
 branch(User user) {
     print(user.name)
 }
 
-// Shared reference with atomic RC
+// Shared reference
 branch(share User user) {
     user.name = "Notmatin"
 }
 ```
 
-### Key Async Paradigm Features
+### Features
 
-#### 1. Structured Concurrency
+1. Structured Concurrency: Children cancel when their parent scope exits.
+2. Cancellation & Timeouts: Built-in token and timeout support.
+3. Select Expression: Wait on multiple channels or timers.
+4. Result Propagation: `branch` can return `Result<T, E>`.
+5. Flow Control: Channels support `Wait`, `DropFirst`, `DropLast`, `SuspendSender`.
+6. Diagnostics: `$ lets inspect async` shows live tasks and traces.
 
-Branches are tied to the parent lexical scope or task. Compiler ensures child branches cancel when the scope exits.
+#### Argument Modes
 
-```c
-withScope(scope) {
-  branch(User user) { /*...*/ }
-  branch(share User cfg) { /*...*/ }
-} // auto-cancels both
-```
+| Syntax                      | Behavior                 |
+| --------------------------- | ------------------------ |
+| `branch(Type x)`            | By-value clone (default) |
+| `branch(share Type x)`      | Shared via atomic RC     |
+| `branch(read share Type x)` | Shared, read-only        |
 
-#### 2. Cancellation & Deadlines
-
-Built-in timeout and cancellation token support:
-
-```c
-branch(User user, timeout(2s)) { /* auto-cancel */ }
-branch(User user, CancelCtx ctx) { /* cancel via ctx */ }
-```
-
-#### 3. Select Expression for Concurrency
-
-A concise syntax to await multiple channels or timeouts:
-
-```c
-select {
-  case msg = chan1(): print(msg)
-  case _ = chan2(): doOther()
-  case _ = timeout(1s): print("timed out")
-}
-```
-
-#### 4. Error Propagation & Aggregation
-
-Branches return `Result<T, E>` values that can be awaited:
-
-```c
-Result<Data, Error> branch fetchData() { /*...*/ }
-Result<Data, Error> result = await fetchData().untill(5s)
-match result {
-  Ok(data)  => render(data)
-  Err(err)  => handleError(err)
-}
-```
-
-#### 5. Backpressure & Flow Control
-
-Channels support policies like `Wait`, `DropFirst`, `DropLast`, and `SuspendSender`. Producers can await `chan.available()` or check `chan.isFull()`.
-
-#### 6. Diagnostic Tooling & Tracing
+### Example: Web Build
 
 ```bash
-$ lets inspect async
+$ lets build --target web --release
 ```
 
-Outputs live tasks, stack traces, and channel states. Developers can trace task lifecycles for performance profiling.
+Produces a `.wasm` module plus JS loader. Integrates with Webpack/Vite via the Joy plugin.
 
-### `branch` Argument Modes
+## CLI Tools
 
-| Syntax                      | Behavior                           |
-| --------------------------- | ---------------------------------- |
-| `branch(Type x)`            | Cloned into task (default)         |
-| `branch(share Type x)`      | Shared, compiler applies Atomic RC |
-| `branch(read share Type x)` | Shared, read-only                  |
+Joy includes a command-line interface (CLI) tool called `lets`. This tool is used to manage and run your projects. For example:
 
-This explicit model avoids implicit data races. Shared references must be opt-in with `share`.
+```bash
+$ lets run          # Start the app
+$ lets test         # Run all tests
+$ lets make project joy-eg  # Create a new project
+```
 
-### 🔒 Developer Simplicity
-
-* No `rc<T>`, `arc<T>`, `clone()` needed in user code.
-* Compiler manages safety.
-* Shared state requires opt-in via `share`.
-* Clone-by-default guarantees pure semantics unless overridden.
-
-## Syntax
+## Syntax Examples
 
 ```c
 Wapp entry() {
@@ -180,125 +111,5 @@ View index() {
 Island counter(int sth) {
     i5 num = 0
     -> <button @click=(num+=1)>Number is {num}</button>
-}
-```
-
-```c
-thing User {
-    Admin(int level)
-    User(int id)
-}
-
-noth sth() {
-    User user = User(69)
-    User anotherUser = Admin(20)
-
-    know user {
-        User(id) => print($$"User with id $$id, $ is the US Currency")
-        Admin(_) => {
-            int level = user.level
-            print("Let's hack their account!")
-        }
-    }
-}
-```
-
-```c
-drop unsafe rand
-
-i5 rnd() {
-    -> unsafe rand.num(1, 10)
-}
-```
-
-```c
-cont Eatable {
-    bit eat(str reason)
-}
-
-impl User:Eatable {
-    bit eat(str reason) {
-        print($"Matin ate user for reason: $reason")
-        -> 1
-    }
-}
-```
-
-```c
-pub noth entry() {
-    i5 num = readLine()
-    num = double(num!)
-    triple(num!!)
-}
-
-int double(int! input) {
-    -> input! * 2
-}
-
-noth triple(int!! input) {
-    input!! *= 3
-}
-```
-
-```c
-View rich() {
-    bit rich = getStatus()
-    -> <p>Wow I'm {rich}!</p>
-}
-
-#client
-bit getStatus() {
-    noname()
-    -> 1
-}
-
-#server
-noth noname() {
-    _ = 10
-}
-```
-
-```c
-noth some() {
-    chan<bit> channel = (5, Wait)
-
-    branch() {
-        channel(1)
-    }
-
-    bit res = channel().until(10s)
-}
-```
-
-```c
-noth entry() {
-    bit[] bits = [1, 0, 1]
-    bit[...] moreBits = [1, 0, 0, 1]
-    bit[100] evenMore = [1]
-
-    bit firstTrue = bits.whr(b == 1).frst()?
-
-    for(bit b in bits) {
-        // loop body
-    }
-
-    for((bit b, u5 i) in bits) {
-        // loop with index
-    }
-}
-```
-
-```c
-Island counter() {
-    chan<str> placeholder = server(() => {
-        str text = db.query(/*...*/)
-        -> text
-    })
-
-    -> <Wait for={str ph = placeholder().untill(5s)}
-             fallback={<p>Wait!</p>}
-             timeout={<p>Oops!</p>}>
-        <strong>I got the {ph}!</strong>
-       </Wait>
 }
 ```
