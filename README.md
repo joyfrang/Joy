@@ -1,18 +1,16 @@
-Joy: The Web Programming Framework and Language
+**Joy: The Web Programming Framework and Language**
 
-Philosophy
+**Philosophy**
 
-Joy is a complete ecosystem for building modern web applications and services, consisting of a new programming language and its integrated framework.
-
-Applications compile to WebAssembly (WASM) for the browser and native binaries for the server, ensuring high performance. Joy is designed as a cohesive whole, providing a clear, productive, and reliable development experience out of the box.
-
+Joy is a complete ecosystem for building modern web applications and services, consisting of a new programming language and its integrated framework. Applications compile to WebAssembly (WASM) for the browser and to native binaries for the server, ensuring high performance. Joy is designed as a cohesive whole, providing a clear, productive, and reliable development experience out of the box.
 
 ---
 
-CLI Tools
+## CLI Tools
 
-Joy uses lets as the command‑line tool for running commands and managing projects:
+Joy uses `lets` as the command‑line tool for running commands and managing projects:
 
+```bash
 # Create a new project named "joy-app"
 $ lets make project joy-app
 
@@ -24,171 +22,172 @@ $ lets run
 $ lets build --release
 
 # Run tests
+echo "Running tests..."
 $ lets test
-
+```
 
 ---
 
-The Joy Language
+## The Joy Language
 
-Data Modeling with thing
+### Data Modeling with `thing`
 
-Joy's primary tool for data modeling is the thing keyword, which creates robust Algebraic Data Types (ADTs). This allows you to define an object that can exist in one of several distinct states.
+Joy's primary tool for data modeling is the `thing` keyword, which defines Algebraic Data Types (ADTs). Each variant can carry its own data, and exhaustive pattern matching via `know` ensures correctness.
 
-The know expression provides exhaustive pattern matching. To ensure clarity and correctness, the types of all bound variables must be explicitly declared within the pattern.
-
-// A User can be one of two variants: Admin or Viewer.
+```joy
 thing User {
     Admin(u5 id, str name, u3 accessLevel)
     Viewer(u5 id, str name)
 }
 
-// In this `know` block, the types for `name` and `level` are explicitly
-// declared, preventing ambiguity and errors.
 noth printUserDetails(User user) {
     know user {
         Admin(_, str name, u3 level) => print($"Admin: {name}, Level: {level}"),
         Viewer(_, str name)        => print($"Viewer: {name}")
     }
 }
+```
 
-Closures
+### Closures
 
-Anonymous functions (closures) follow the same declaration syntax as named functions, just without a name. The compiler identifies them by the context in which they are defined.
+Anonymous functions (closures) follow the same syntax as named functions but without a name. Variables from the parent scope must be explicitly brought in with `bring`:
 
-Syntax: ReturnType(params...) { ... }
-
-Variables from the parent scope are not captured automatically; they must be explicitly brought into the closure's scope using the bring keyword within the parameter list.
-
-// A closure that brings `userName` into its scope and returns a `str`.
+```joy
 str(bring str userName) {
     return $"Greetings, {userName}."
 }
-
+```
 
 ---
 
-Memory Model and Concurrency
+## Memory Model and Concurrency
 
 Joy manages memory and concurrency using safe Automatic Reference Counting (ARC), clone‑by‑default semantics, and structured concurrency constructs.
 
-Memory Model
+### Memory Model
 
-Automatic ARC: The compiler inserts inc_ref and dec_ref calls; developers never manage them manually.
+* **Automatic ARC**: The compiler inserts `inc_ref` and `dec_ref` calls; developers never manage them manually.
+* **Clone‑by‑default**: Assignments perform deep copies unless marked `share`:
 
-Clone‑by‑default: Assignments perform deep copies unless marked share:
+  ```joy
+  User a = b          // deep clone
+  User a = share b    // shared reference via ARC
+  ```
+* **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership.
 
-User a = b          // deep clone
-User a = share b    // shared reference via ARC
+  * Use alternative patterns (IDs, one‑way ownership) to avoid cycles.
 
-No Cycles: Reference cycles are disallowed; the compiler rejects cyclic ownership.
+### Branch and Concurrency
 
-Use alternative patterns (IDs, one‑way ownership) to avoid cycles.
+Joy introduces `branch` blocks for async tasks with safe, structured concurrency:
 
+```joy
+User user = User("Matin")
 
-
-Branch and Concurrency
-
-branch takes a noth() returning closure or function reference as an argument, improving composability and alignment with other constructs:
-
-// External function
-noth doAsync() {
-    print("running async")
+// Default (clone-by-value) task
+branch(User user) {
+    print(user.name)
 }
 
-// Using an external function
-branch(doAsync)
-
-// Inline closure for brevity
-branch(noth() {
-    print("hi")
-})
-
-Key Features:
-
-1. Structured Concurrency: Branches are tied to their parent scope. Exiting the scope cancels all child tasks.
-
-withScope(scope) {
-  branch(doCleanup)
-} // auto-cancels
-
-
-2. Cancellation & Deadlines: Built‑in support for timeouts and cancellation tokens:
-
-branch(timeout: 2s, doTimeoutTask)
-
-
-3. Select Expression: Await multiple buckets or timeouts concisely:
-
-select {
-  case msg = bucket1():     print(msg)
-  case _   = bucket2():     doOther()
-  case _   = timeout(1s):   print("timed out")
+// Shared (atomic ARC) task
+branch(share User user) {
+    user.name = "Notmatin"
 }
+```
 
+#### Key Features
 
-4. Error Propagation: Branch returns Result<T, E>, which can be awaited and matched.
+1. **Structured Concurrency**: Branches are tied to their parent scope. Exiting the scope cancels all child tasks.
 
+   ```joy
+   withScope(scope) {
+     branch(User user) { /*...*/ }
+     branch(share User cfg) { /*...*/ }
+   } // auto-cancels children
+   ```
 
+2. **Cancellation & Deadlines**: Built‑in support for timeouts and cancellation tokens:
 
+   ```joy
+   branch(User user, timeout(2s)) { /* auto-cancel on timeout */ }
+   branch(User user, CancelCtx ctx)  { /* manual cancel via ctx */ }
+   ```
+
+3. **Select Expression**: Await multiple buckets or timeouts concisely:
+
+   ```joy
+   select {
+     case msg = bucket1():       print(msg)
+     case _   = bucket2():       doOther()
+     case _   = timeout(1s):     print("timed out")
+   }
+   ```
+
+4. **Error Propagation & Aggregation**: Branch returns `Result<T, E>`; await and match errors:
+
+   ```joy
+   Result<Data, Error> branch fetchData() { /*...*/ }
+   Result<Data, Error> result = await fetchData().until(5s)
+   match result {
+     Ok(data)  => render(data),
+     Err(err)  => handleError(err)
+   }
+   ```
+
+5. **Backpressure & Flow Control**: Buckets support policies (`Wait`, `DropFirst`, `DropLast`, `SuspendSender`):
+
+   ```joy
+   bucket<bit> b = (5, Wait)
+   // Sender can check `b.isFull()` or await `b.available()`
+   ```
+
+6. **Diagnostic Tooling & Tracing**: Inspect live tasks, stack traces, and bucket states:
+
+```bash
+$ lets inspect async
+# Shows tasks, bucket queues, and profiling data
+```
 
 ---
 
-Buckets and Server RPC
-
-Buckets are now the primary async primitive. They encapsulate queueing, backpressure policy, and producer logic.
-
-Defining a Bucket
-
-// Create a bucket with capacity 3 and DropLast policy, attaching a producer
-bucket<str> codenameB = bucket(3, DropLast, generateNewCodename)
-
-Attaching Producers
-
-Function reference:
-
-bucket<str> b = bucket(1, Wait, generateCodename)
-
-Inline closure:
-
-bucket<str> b = bucket(2, DropFirst, str() { return "hello" })
-
-
-Server RPC
-
-Islands trigger server-side producers by the context they run in; no separate server() call is needed. Producers defined on the server execute accordingly.
-
-
----
-
-The Joy Web Framework
+## The Joy Web Framework
 
 The framework extends Joy’s language principles to web development. Functions are server‑side by default for a secure‑by‑default architecture.
 
-Component Model
+### Component Model
 
-Layout: Reusable wrappers for page structure.
+* **Layout**: Reusable wrappers for page structure.
+* **View**: Static, server‑rendered components.
+* **Island**: Interactive client‑side components with local state and events.
 
-View: Static, server‑rendered components.
+### Server RPC
 
-Island: Interactive client‑side components with local state and events.
+Islands can call server closures via `server()`, passing in a pre-configured `bucket`:
 
+```joy
+bucket<str> codenameB = (3, DropLast)
+server(codenameB, str() {
+    return generateNewCodename()
+})
+```
 
-Asynchronous UI
+### Asynchronous UI
 
-The built‑in <Wait> component declaratively consumes buckets with timeouts and fallbacks:
+The built‑in `<Wait>` component declaratively consumes buckets with timeouts and fallbacks:
 
+```joy
 <Wait for={codenameB(timeout: 5s)}
       fallback={<p>Generating...</p>}
       timeout={<p>Timed out</p>}>
   {(str name) => <h2>Your new codename is: {name}</h2>}
 </Wait>
-
+```
 
 ---
 
-A Complete Example: "Joyful Profile" App
+## A Complete Example: "Joyful Profile" App
 
+```joy
 // main.joy
 
 thing User {
@@ -221,7 +220,8 @@ View HomePage() {
 
 Island UserProfile(User user) {
     str codename = "Nomad"
-    bucket<str> codenameB = bucket(1, Wait, generateNewCodename)
+    bucket<str> codenameB = (1, Wait)
+    server(codenameB, str() { return generateNewCodename() })
 
     return <MainLayout>
         {know user {
@@ -246,12 +246,13 @@ Island UserProfile(User user) {
         </Wait>
     </MainLayout>
 }
-
+```
 
 ---
 
-Tooling: the lets CLI
+## Tooling: the `lets` CLI
 
+```bash
 # Create a new project
 $ lets make project joy-app
 
@@ -266,4 +267,4 @@ $ lets build --release
 
 # Run tests
 $ lets test
-
+```
