@@ -6,29 +6,6 @@ Joy is a complete ecosystem for building modern web applications and services, c
 
 ---
 
-## CLI Tools
-
-Joy uses `lets` as the command‑line tool for running commands and managing projects:
-
-```bash
-# Create a new project named "joy-app"
-$ lets make project joy-app
-
-# Run the development server
-echo "Starting dev server..."
-
-$ lets run
-
-# Build a production‑ready web application
-$ lets build --release
-
-# Run tests
-echo "Running tests..."
-$ lets test
-```
-
----
-
 ## The Joy Language
 
 ### Data Modeling with `thing`
@@ -62,8 +39,6 @@ str(bring str userName) {
 ---
 
 ## Memory Model and Concurrency
-
-Joy manages memory and concurrency using safe Automatic Reference Counting (ARC), clone‑by‑default semantics, and structured concurrency constructs.
 
 ### Memory Model
 
@@ -108,7 +83,7 @@ branch(share User user) {
    } // auto-cancels children
    ```
 
-5. **Backpressure & Flow Control**: Buckets support policies (`Wait`, `DropFirst`, `DropLast`, `SuspendSender`):
+2. **Backpressure & Flow Control**: Buckets support policies (`Wait`, `DropFirst`, `DropLast`, `SuspendSender`):
 
    ```joy
    bucket<bit> b = (5, Wait)
@@ -148,6 +123,29 @@ The built‑in `<Wait>` component declaratively consumes buckets with timeouts a
       timeout={<p>Timed out</p>}>
   {(str name) => <h2>Your new codename is: {name}</h2>}
 </Wait>
+```
+
+---
+
+## CLI Tools
+
+Joy uses `lets` as the command‑line tool for running commands and managing projects:
+
+```bash
+# Create a new project named "joy-app"
+$ lets make project joy-app
+
+# Run the development server
+echo "Starting dev server..."
+
+$ lets run
+
+# Build a production‑ready web application
+$ lets build --release
+
+# Run tests
+echo "Running tests..."
+$ lets test
 ```
 
 ---
