@@ -1,6 +1,6 @@
-**Joy: The Web Programming Framework and Language**
+# Joy: The Web Programming Framework and Language
 
-**Philosophy**
+## Philosophy
 
 Joy is a complete ecosystem for building modern web applications and services, consisting of a new programming language and its integrated framework. Applications compile to WebAssembly (WASM) for the browser and to native binaries for the server, ensuring high performance. Joy is designed as a cohesive whole, providing a clear, productive, and reliable development experience out of the box.
 
@@ -73,6 +73,7 @@ Joy manages memory and concurrency using safe Automatic Reference Counting (ARC)
   User a = b          // deep clone
   User a = share b    // shared reference via ARC
   ```
+
 * **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership.
 
   * Use alternative patterns (IDs, one‑way ownership) to avoid cycles.
@@ -106,47 +107,12 @@ branch(share User user) {
    } // auto-cancels children
    ```
 
-2. **Cancellation & Deadlines**: Built‑in support for timeouts and cancellation tokens:
-
-   ```joy
-   branch(User user, timeout(2s)) { /* auto-cancel on timeout */ }
-   branch(User user, CancelCtx ctx)  { /* manual cancel via ctx */ }
-   ```
-
-3. **Select Expression**: Await multiple buckets or timeouts concisely:
-
-   ```joy
-   select {
-     case msg = bucket1():       print(msg)
-     case _   = bucket2():       doOther()
-     case _   = timeout(1s):     print("timed out")
-   }
-   ```
-
-4. **Error Propagation & Aggregation**: Branch returns `Result<T, E>`; await and match errors:
-
-   ```joy
-   Result<Data, Error> branch fetchData() { /*...*/ }
-   Result<Data, Error> result = await fetchData().until(5s)
-   match result {
-     Ok(data)  => render(data),
-     Err(err)  => handleError(err)
-   }
-   ```
-
 5. **Backpressure & Flow Control**: Buckets support policies (`Wait`, `DropFirst`, `DropLast`, `SuspendSender`):
 
    ```joy
    bucket<bit> b = (5, Wait)
    // Sender can check `b.isFull()` or await `b.available()`
    ```
-
-6. **Diagnostic Tooling & Tracing**: Inspect live tasks, stack traces, and bucket states:
-
-```bash
-$ lets inspect async
-# Shows tasks, bucket queues, and profiling data
-```
 
 ---
 
@@ -246,25 +212,4 @@ Island UserProfile(User user) {
         </Wait>
     </MainLayout>
 }
-```
-
----
-
-## Tooling: the `lets` CLI
-
-```bash
-# Create a new project
-$ lets make project joy-app
-
-# Run development server
-$ lets run
-
-# Inspect async tasks
-$ lets inspect async
-
-# Build production release
-$ lets build --release
-
-# Run tests
-$ lets test
 ```
