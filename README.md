@@ -16,6 +16,7 @@ $ lets make project joy-app
 
 # Run the development server
 echo "Starting dev server..."
+
 $ lets run
 
 # Build a production‑ready web application
