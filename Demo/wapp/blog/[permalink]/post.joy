@@ -1,0 +1,35 @@
+bring project:db/Post
+// Joy's router is quite similar to NextJS app router
+
+#route // Only one Renderable can have #route tag for a specific URL
+// Unlike NextJS, the filename doesn't have to be an exact name (like page.tsx)
+// TODO: Should fetch post from DB using the ORM and check if it's not null
+View Post(str(permalinkValidator) permalink) {
+    Option<Post> post = db.posts.first(post => post.permalink == permalink)
+    know post {
+        Post(str(postTitleValidator) title, str body) => expose title, body
+        noth => notFound()
+    }
+    return <p>Post post post at {permalink}... {title} and {body}</p>
+}
+
+// ValidationResult is an internal type:
+// thing ValidationResult {
+    // Valid()
+    // The "existing" keyword is used for referencing a "thing" as an option
+    // As the Error constructor is defined in the Error type itself, there
+    // Shouldn't be any parentheses here
+    // existing Error
+// }
+
+// Pillar functions are equalevent of static functions in other programming languages
+// A paramater validator that is also pillar, can verify arguments in compile-time
+// If the provided params are not dynamic
+// Update, no pillar keyword, the compiler has to figure it out and autoly insert it
+// It shouldn't be a public API
+// If the validator function returns an error, it will be passed to the caller functions' caller
+// e.g. the caller of Post function in this case, seeming like that function has returned the
+// error
+/* pillar */ ValidationResult permalinkValidator(str param) {
+    // Do the checks
+}

@@ -1,0 +1,15 @@
+thing Post {
+    #dbObject // Means that this object is supposed to also be stored in a database and
+    // be managed by Joy's ORM
+    #jsonObject // Means that this particular constructor supports JSON (de)serialization
+    // This tag is used in constructor-level and not thing-level, as the thing may have multiple
+    // ctors (like Error or null), which are of course not meant to be sent through JSON in this manner
+    Post(
+       #dbId /* Optional as the name is "id" */ #jsonIgnore(default: 0) u5 id // Won't be serialized, the default value will be assigned in deserialization
+       #json("PostTitle") /* Json tag used for each property, optional */ str title,
+       str(maxLengthValidator(length: 1000)) body,
+       #dbDate str date,
+       str author,
+       str(permalinkValidator) permalink
+    )
+}

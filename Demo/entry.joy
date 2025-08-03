@@ -1,0 +1,6 @@
+Wapp entry() {
+    Wapp wapp = (port: 8080, tls: false)
+    return wapp
+    // or
+    // return (port: 8080, tls: false)
+}

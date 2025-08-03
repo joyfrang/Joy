@@ -1,0 +1,15 @@
+// Layout is a special type used for layouts. The function
+// returning a Layout must take a Renderable (View, Layout or Island) as an argument and use that
+// in the HTML it outputs 
+// Expose is the equalevent of "export" in JS, and "public" in other languages
+// If a layout is going to be used outside the filesystem-based router,
+// it has to be exposed
+expose Layout HtmlShell(Renderable children) {
+    return <html>
+    <head>...</head>
+
+    <body>
+        {children}
+    </body>
+    </html>
+}

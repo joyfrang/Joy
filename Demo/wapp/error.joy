@@ -1,0 +1,11 @@
+// Error Views
+
+// 403 Forbidden
+View 403() {
+    return <strong>Whoops!</strong>
+}
+
+// 404 Not Found
+View 404() {
+    return <strong>Oops!</strong>
+}
