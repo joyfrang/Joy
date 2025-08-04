@@ -1,3 +1,10 @@
+> **Proposal Only:**  
+> This repository contains a proposal for **Joy**, a modern programming language and web framework. The project is not in active development and is currently in the feedback-gathering phase.  
+> 
+> **Note:** Joy is not scheduled for implementation in the near future. If you have thoughts or suggestions, contributions, and feedback are welcome!
+
+---
+
 # Joy: The Web Programming Framework and Language
 
 ## Philosophy
