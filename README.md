@@ -62,12 +62,12 @@ Joy introduces `branch` blocks for async tasks with safe, structured concurrency
 User user = User("Matin")
 
 // Default (clone-by-value) task
-branch(User user) {
+branch(bring User user) {
     print(user.name)
 }
 
 // Shared (atomic ARC) task
-branch(share User user) {
+branch(bring share User user) {
     user.name = "Notmatin"
 }
 ```
