@@ -219,3 +219,5 @@ Island UserProfile(User user) {
     </MainLayout>
 }
 ```
+
+> **Proof of Concept:** You can also view the demo project made using Joy's frang (framework/language) semantics [here](https://github.com/joyfrang/Joy/tree/mom/Demo).
