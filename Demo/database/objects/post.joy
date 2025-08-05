@@ -13,3 +13,5 @@ thing Post {
        str(permalinkValidator) permalink
     )
 }
+
+// TODO: As there can be validators in fields, making things will need to return a result aka. bomb
