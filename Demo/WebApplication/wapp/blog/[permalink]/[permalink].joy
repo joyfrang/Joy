@@ -22,6 +22,12 @@ Island UserAgent() {
     return <p>Your browser is {browser}</p>
 }
 
+// There's also a similar tag for localstorage
+// TODO: Have to make a decision to wither pick up the function-based API or the tag-based
+// The tag-based is much cooler as it gives you a variable that automatically changes the underlying
+// Browser storage key as you read/write to it
+// However it needs proper error handling even if it's gonna be used
+#sessionStorage(key: "useless", expose u5 useless)
 Island PersistentStorage() {
     // maybe is a "thing", which has similar functionality to Options in other less cool languages
     maybe<str> lastVisit = localStorage(key: "abcd")
