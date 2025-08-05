@@ -222,4 +222,12 @@ Island UserProfile(User user) {
 }
 ```
 
+## TODOs
+
+There are a lot of TODOs in the demos. However, these features need to be planned before they can make their way into the proposal:
+
+- [x] Testing markdown checklists
+- [ ] Generic Types (proper implementation of `maybe` and `bomb` keyword depends on it)
+- [ ] JSON-like collections (e.g. for passing type-safe configurations around)
+
 > **Proof of Concept:** You can also view the demo project made using Joy's frang (framework/language) semantics [here](https://github.com/joyfrang/Joy/tree/mom/Demo).
