@@ -1,4 +1,5 @@
 bring project:db/Post
+
 // Joy's router is quite similar to NextJS app router
 
 #route // Only one Renderable can have #route tag for a specific URL
@@ -10,7 +11,36 @@ View Post(str(permalinkValidator) permalink) {
         Post(str(postTitleValidator) title, str body) => expose title, body
         noth => notFound()
     }
-    return <p>Post post post at {permalink}... {title} and {body}</p>
+    return <p>Post post post at {permalink}... {title} and {body} <UserAgent/></p>
+}
+
+// This client-side Island component is supposed to display user's device information
+// As this function is already returning an Island, it doesn't need to have the #client tag
+Island UserAgent() {
+    str ua = js.execute(code: /*The code that returns the UA*/) // TODO: or maybe it should be executeJs()?
+    str browser = getBrowserNameFromUA(str ua /*maybe function params should also have types, in addition to parameter name*/: ua) // Imagine it's implemented somewhere nearby
+    
+    return <p>Your browser is {browser}</p>
+}
+
+Island PersistentStorage() {
+    // maybe is a "thing", which has similar functionality to Options in other less cool languages
+    maybe<str> lastVisit = localStorage(key: "abcd")
+    
+    defuse lastVisit {
+        some(str date) => {
+            // Do something with it..
+            
+            // Bombs are Result types in other languages, but hey, a bomb is much cooler than a boring result
+            bomb<str, BrowserStorageError> storageWriteBomb = localStorage(key: "abcd", value: date())
+            
+            defuse storageWriteBomb {
+                fine(_) => celebrate()
+                BrowserStorageError(_, _) => panic() // Strict error handling be like:
+            }
+        }
+        noth => forbidden() // Perfect edge case handling
+    }
 }
 
 // ValidationResult is an internal type:
