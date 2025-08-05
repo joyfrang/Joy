@@ -1,0 +1,6 @@
+expose bit isValid() {
+    // This way functions inside a bundle can read the configuration passed to them by the load function
+    maybe<bit> something = config("")
+    unsafe /*<-- the gold standard you have to deal with every time you want to do something bad*/ */ force some(expose bit value) // This might panic!
+    return value
+}

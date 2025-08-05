@@ -1,0 +1,6 @@
+// Bundles don't have a lifetime, so they don't have an entry file
+// They have the load function instead, that handles params passed to the bundle in "bring" statement
+// e.g. license checking or whatever
+Bundle load(/*params*/) {
+    return (/*a configuration collection that other scripts in the bundle can reference or use*/)
+}
