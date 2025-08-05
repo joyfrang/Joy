@@ -229,5 +229,6 @@ There are a lot of TODOs in the demos. However, these features need to be planne
 * [x] Testing markdown checklists
 * [ ] Generic Types (proper implementation of `maybe` and `bomb` keyword depends on it)
 * [ ] JSON-like collections (e.g. for passing type-safe configurations around)
+* [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang)
 
 > **Proof of Concept:** You can view the Joy demo project with example code and implementation details [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).
