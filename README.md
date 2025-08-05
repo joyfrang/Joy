@@ -19,7 +19,7 @@ Joy's design is guided by the "Joyful Programming" paradigm: a pragmatic approac
 
 ### Data Modeling with `thing`
 
-Joy's primary tool for data modeling is the `thing` keyword, which defines Algebraic Data Types (ADTs). Each variant can carry its own data, and exhaustive pattern matching via `know` ensures correctness.
+Joy's primary tool for data modeling is the `thing` keyword, which defines Algebraic Data Types (ADTs). Each variant can carry its own data, and exhaustive pattern matching via `defuse` ensures correctness.
 
 ```joy
 thing User {
@@ -28,7 +28,7 @@ thing User {
 }
 
 noth printUserDetails(User user) {
-    know user {
+    defuse user {
         Admin(_, str name, u3 level) => print($"Admin: {name}, Level: {level}"),
         Viewer(_, str name)        => print($"Viewer: {name}")
     }
@@ -198,7 +198,7 @@ Island UserProfile(User user) {
     server(codenameB, str() { return generateNewCodename() })
 
     return <MainLayout>
-        {know user {
+        {defuse user {
             Admin(_, str name, u3 level) => {
                 <h1>Admin Panel: {name}</h1>
                 <p>Access Level: {level}</p>
@@ -226,8 +226,8 @@ Island UserProfile(User user) {
 
 There are a lot of TODOs in the demos. However, these features need to be planned before they can make their way into the proposal:
 
-- [x] Testing markdown checklists
-- [ ] Generic Types (proper implementation of `maybe` and `bomb` keyword depends on it)
-- [ ] JSON-like collections (e.g. for passing type-safe configurations around)
+* [x] Testing markdown checklists
+* [ ] Generic Types (proper implementation of `maybe` and `bomb` keyword depends on it)
+* [ ] JSON-like collections (e.g. for passing type-safe configurations around)
 
 > **Proof of Concept:** You can also view the demo project made using Joy's frang (framework/language) semantics [here](https://github.com/joyfrang/Joy/tree/mom/Demo).

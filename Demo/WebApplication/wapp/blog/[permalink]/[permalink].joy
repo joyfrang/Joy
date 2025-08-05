@@ -6,7 +6,7 @@ bring project:db/Post
 // The View or Island named "Page" from the file having the same name as the parent folder (except for index.joy) will be given the pageload
 View Page(str(permalinkValidator) permalink) {
     Option<Post> post = db.posts.first(post => post.permalink == permalink)
-    know post {
+    defuse post {
         Post(str(postTitleValidator) title, str body) => expose title, body
         noth => notFound()
     }
