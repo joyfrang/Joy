@@ -4,3 +4,22 @@ expose bit isValid() {
     unsafe /*<-- the gold standard you have to deal with every time you want to do something bad*/ */ force some(expose bit value) // This might panic!
     return value
 }
+
+noth arrays() {
+    bit[] bits = [1, 0, 1] // Make a dynamically sized array
+    bit[...] moreBits = [1, 0, 0, 1] // Equalivent to bit[4]
+    bit[100] evenMore = [1] // Room for appending without resizing
+
+    // We have Linq!
+    maybe<bit> firstTrue = bits.where(b == 1).first()
+
+    for(bit b in bits) {
+        // do something with b
+    }
+
+    // Ints and Unsigned Ints numbers are powers of two
+    // u5 is a 2^5 = 32 bit unsigned intager
+    for((bit b, u5 i) in bits) {
+        // Do something with it
+    }
+}
