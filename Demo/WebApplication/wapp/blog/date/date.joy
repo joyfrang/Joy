@@ -1,6 +1,6 @@
 bring unsafe bundleName(/*the params that load function takes*/)/functions/dateManager
 
 View Page() {
-    bit isValid = isValid()
+    bit isValid = dateManager.isValid()
     return <p>{isValid}</p>
 }
