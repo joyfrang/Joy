@@ -45,6 +45,44 @@ str(bring str userName) {
 }
 ```
 
+### Contracts and Implementations
+
+Joy supports interface-like abstractions through **contracts** (`cont`) and their implementations (`impl`). Contracts define a set of function signatures that types must implement, enabling polymorphism and code reuse.
+
+```joy
+// Define a contract (interface)
+cont Eatable {
+    bit eat(str reason)
+    bit digest()
+}
+
+// Implement the contract for a specific type
+impl User:Eatable {
+    bit eat(str reason) {
+        print($"User ate something for reason: {reason}")
+        return true
+    }
+    
+    bit digest() {
+        print("User is digesting...")
+        return true
+    }
+}
+
+// Now User can be used wherever Eatable is expected
+noth feedSomeone(Eatable hungry) {
+    hungry.eat("hunger")
+    hungry.digest()
+}
+
+noth example() {
+    User user = Admin(id: 1, name: "Matin", accessLevel: 250)
+    feedSomeone(user) // User implements Eatable, so this works
+}
+```
+
+Contracts can be implemented by any `thing`, allowing for flexible and type-safe polymorphism without the complexity of traditional inheritance hierarchies.
+
 ---
 
 ## Memory Model and Concurrency
@@ -230,5 +268,5 @@ There are numerous TODOs in the demos. However, these features need to be planne
 * [ ] Generic Types (proper implementation of `maybe` and `bomb` keywords depends on it)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
-
-**Proof of Concept:** You can view the Joy demo project, including example code and implementation details, at the demo repository [here](https://github.com/joyfrang/Joy/tree/mom/Demo).
+* [ ] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
+**Proof of Concept:** You can view the Joy demo project, including example code and implementation details, [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).
