@@ -1,3 +1,9 @@
 View index() {
-    return <h1>Hi!!</h1>
+    return <div><h1>Hi!!</h1><CoolButton /></div>
+}
+
+Island CoolButton() {
+    u5 counter = 0
+    
+    return <button @click={counter+=1}>Cool {counter}</button>
 }
