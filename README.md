@@ -264,9 +264,8 @@ Island UserProfile(User user) {
 
 There are numerous TODOs in the demos. However, these features need to be planned before they can make their way into the proposal:
 
-* [x] Testing markdown checklists
 * [ ] Generic Types (proper implementation of `maybe` and `bomb` keywords depends on it)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
-* [ ] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
+* [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
 **Proof of Concept:** You can view the Joy demo project, including example code and implementation details, [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).
