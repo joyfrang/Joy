@@ -1,0 +1,22 @@
+// This file is the implementation of the Terms of Service page.
+// This time, the code goes to the client-side, and the browser handles managing the state of the Terms of Service page.
+Island Page() {
+    bucket<str> tosBody = (size: 1)
+    str userLocale = localStorage(key: "userLocale") // Must have "assert" keyword
+    
+    // The server function initializes an RPC call stack in the server and calls it here
+    server(tosBody, str() {
+        str tos = getTosForLocale(locale: userLocale)
+        return tos
+    })
+    
+    return <div>
+            <h1>Terms of Service</h1>
+            <Wait for={str tos = tosBody().wait(10s)} // The wait component is the equivalent of Suspense in React
+                  fallback={<p>Loading...</p>}
+                  timeout={<p>Sorry, we are having trouble loading the terms of service.</p>}>
+                  
+                <p>{tos}</p>
+            </Wait>
+        </div>
+}
