@@ -7,10 +7,10 @@ thing Post {
     Post(
        #dbId /* Optional as the name is "id" */ #jsonIgnore(default: 0) u5 id // Won't be serialized, the default value will be assigned in deserialization
        #json("PostTitle") /* Json tag used for each property, optional */ str title,
-       str(maxLengthValidator(length: 1000)) body,
+       str body->vMaxLength(1000),
        #dbDate str date,
        str author,
-       str(permalinkValidator) permalink
+       str permalink->vPermalink
     )
 }
 

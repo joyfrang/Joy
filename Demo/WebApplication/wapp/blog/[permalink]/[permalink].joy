@@ -4,10 +4,10 @@ bring project:db/Post
 
 // TODO: Should fetch post from DB using the ORM and check if it's not null
 // The View or Island named "Page" from the file having the same name as the parent folder (except for index.joy) will be given the pageload
-View Page(str(permalinkValidator) permalink) {
+View Page(str permalink->vPermalink) {
     Option<Post> post = db.posts.first(post => post.permalink == permalink)
     defuse post {
-        Post(str(postTitleValidator) title, str body) => expose title, body
+        Post(str title->vPostTitle, str body) => expose title, body
         noth => notFound()
     }
     return <p>Post post post at {permalink}... {title} and {body} <UserAgent/></p>
