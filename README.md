@@ -123,13 +123,6 @@ branch(bring share User user) {
 
 1. **Structured Concurrency**: Branches are tied to their parent scope. Exiting the scope cancels all child tasks.
 
-   ```joy
-   withScope(scope) {
-     branch(User user) { /*...*/ }
-     branch(share User cfg) { /*...*/ }
-   } // auto-cancels children
-   ```
-
 2. **Backpressure & Flow Control**: Buckets support policies (`Wait`, `DropFirst`, `DropLast`, `SuspendSender`):
 
    ```joy
@@ -155,9 +148,8 @@ Islands can call server closures via `server()`, passing in a pre-configured `bu
 
 ```joy
 bucket<str> codenameB = (3, DropLast)
-server(codenameB, str() {
-    return generateNewCodename()
-})
+server(codenameB) {
+    return generateNewCodename()}
 ```
 
 ### Asynchronous UI
@@ -233,7 +225,7 @@ View HomePage() {
 Island UserProfile(User user) {
     str codename = "Nomad"
     bucket<str> codenameB = (1, Wait)
-    server(codenameB, str() { return generateNewCodename() })
+    server(codenameB) { return generateNewCodename() }
 
     return <MainLayout>
         {defuse user {
@@ -268,4 +260,6 @@ There are numerous TODOs in the demos. However, these features need to be planne
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
-**Proof of Concept:** You can view the Joy demo project, including example code and implementation details, [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).
+* [ ] How parameters should be passed in function calls?
+
+**Proof of Concept:** You can view the Joy demo project, including example code and implementation details, [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).q

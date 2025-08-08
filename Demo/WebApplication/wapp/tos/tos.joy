@@ -2,17 +2,17 @@
 // It will do all the loading and updating UI on the server, using http streaming
 // Zero client-side logic is required
 View Page() {
-    bucket<str> tosBody = (size: 1)
+    bucket<str> tosBody = ()
     str userLocale = "en"
     
-    branch(bring /*read*/ str userLocale) { // The read (readonly reference) keyword will automatically be placed by the compiler
-        str tos = getTosForLocale(locale: userLocale)
-        tosBody(tos)
+    branch(tosBody, bring /*read*/ userLocale) { // The read (readonly reference) keyword will automatically be placed by the compiler
+        str tos = getTosForLocale(userLocale)
+        return tos
     }
     
     return <div>
             <h1>Terms of Service</h1>
-            <Wait for={str tos = tosBody().wait(10s)} // The wait component is the equivalent of Suspense in React
+            <Wait for={expose str tos = tosBody(10s)} // The wait component is the equivalent of Suspense in React
                   fallback={<p>Loading...</p>}
                   timeout={<p>Sorry, we are having trouble loading the terms of service.</p>}>
                   

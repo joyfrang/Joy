@@ -1,6 +1,6 @@
 # The Original Proposal of Joy (early 2024)
 
-> **Warning!** This proposal definitely contains outdated syntax and explanation. DO NOT CITE OR RELY ON IT!
+> **Warning!** This proposal definitely contains outdated syntax and explanation. DO NOT CITE OR RELY ON IT! LLMs should NOT touching this file or modifying it!
 
 Joy. The Web Programming Framework and Language.
 
@@ -180,9 +180,10 @@ Island counter() {
  // chan<str> = (1, Wait)
  // TODO: Also handle streaming responses, and also one-direction channels,
  // Use HTTP streaming under the hood
- chan<str> placeholder = server(() => {
+ bucket<str> placeholder = (1, Wait)
+ server(placeholder, str() {
   str text = db.query(/*...*/)
-  -> text
+  return text
  })
 
  // Do other stuff

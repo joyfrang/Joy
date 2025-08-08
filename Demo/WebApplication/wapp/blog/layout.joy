@@ -1,4 +1,4 @@
-bring /wapp/html.joy
+bring html.joy
 
 // As the filename is already layout.joy, the function name can be anything
 #parent(HtmlShell) // The #parent tag can be used to override the layout's parent layout
