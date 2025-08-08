@@ -83,6 +83,32 @@ noth example() {
 
 Contracts can be implemented by any `thing`, allowing for flexible and type-safe polymorphism without the complexity of traditional inheritance hierarchies.
 
+### Generics with `mustbe`
+
+Joy supports generic programming by constraining types to contracts using the `mustbe` keyword. This allows functions and `thing`s to operate on any type that fulfills a specific contract, ensuring both flexibility and type safety. This is the mechanism that powers built-in generic types like `maybe<T>` and `bomb<T, E>`.
+
+```joy
+// A function that accepts any type implementing the Eatable contract
+noth feed(mustbe Eatable food) {
+    food.eat("Because it's dinner time!")
+}
+```
+
+### Static Dependency Injection with `settype`
+
+Joy includes a special internal keyword, `settype`, to support advanced compile-time features like static dependency injection. It allows the compiler to assign a concrete type to a specially-designed typeless parameter, which is essential for configuring bundles without a runtime overhead.
+
+This feature is used internally by the framework and is not part of the public API available to developers.
+
+```joy
+// Example from a bundle definition
+Bundle load(str licenseKey) {
+    // 'settype' assigns the 'Settings' type to the 'settings' parameter
+    // The compiler resolves this based on a predefined usage
+    return (settings: settype Settings(licenseKey: licenseKey, apiKey: "def"))
+}
+```
+
 ---
 
 ## Memory Model and Concurrency
@@ -256,7 +282,7 @@ Island UserProfile(User user) {
 
 There are numerous TODOs in the demos. However, these features need to be planned before they can make their way into the proposal:
 
-* [ ] Generic Types (proper implementation of `maybe` and `bomb` keywords depends on it)
+* [x] Generic Types (proper implementation of `maybe` and `bomb` keywords depends on it)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`

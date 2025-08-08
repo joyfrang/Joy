@@ -1,0 +1,3 @@
+expose thing Settings {
+    Settings(str licenseKey, str apiKey)
+}

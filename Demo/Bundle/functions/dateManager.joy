@@ -1,8 +1,9 @@
+bring ./settings.joy
+
 expose bit isValid() {
     // This way functions inside a bundle can read the configuration passed to them by the load function
-    maybe<bit> something = config("")
-    unsafe /*<-- the gold standard you have to deal with every time you want to do something bad*/ */ force some(expose bit value) // This might panic!
-    return value
+    maybe<str> something = settings().licenseKey /* Settings is a system function returning the type of the settings, specified in the bundle.joy and figures out everything at compile-time */
+    return 1
 }
 
 noth arrays() {
@@ -22,4 +23,8 @@ noth arrays() {
     for((bit b, u5 i) in bits) {
         // Do something with it
     }
+}
+
+noth fn() {
+    str licenseKey = settings().licenseKey
 }
