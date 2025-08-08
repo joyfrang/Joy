@@ -5,7 +5,7 @@ bring project:db/Post
 // TODO: Should fetch post from DB using the ORM and check if it's not null
 // The View or Island named "Page" from the file having the same name as the parent folder (except for index.joy) will be given the pageload
 View Page(str permalink->vPermalink) {
-    Option<Post> post = db.posts.first(post => post.permalink == permalink)
+    maybe<Post> post = db.posts.first(post => post.permalink == permalink)
     defuse post {
         Post(str title->vPostTitle, str body) => expose title, body
         noth => notFound()
@@ -16,8 +16,8 @@ View Page(str permalink->vPermalink) {
 // This client-side Island component is supposed to display user's device information
 // As this function is already returning an Island, it doesn't need to have the #client tag
 Island UserAgent() {
-    str ua = js.execute(code: /*The code that returns the UA*/) // TODO: or maybe it should be executeJs()?
-    str browser = getBrowserNameFromUA(str ua /*maybe function params should also have types, in addition to parameter name*/: ua) // Imagine it's implemented somewhere nearby
+    str ua = js.execute(code: /*The code that returns the UA*/)
+    str browser = getBrowserNameFromUA(ua) // Imagine it's implemented somewhere nearby
     
     return <p>Your browser is {browser}</p>
 }
@@ -30,13 +30,13 @@ Island UserAgent() {
 #sessionStorage(key: "useless", expose u5 useless)
 Island PersistentStorage() {
     // maybe is a "thing", which has similar functionality to Options in other less cool languages
-    maybe<str> lastVisit = localStorage(key: "abcd")
+    maybe<str> lastVisit = localStorage(key: "abcd") // Specifying the parameters name is optional
     
     defuse lastVisit {
         some(str date) => {
             // Do something with it..
             
-            // Bombs are Result types in other languages, but hey, a bomb is much cooler than a boring result
+            // Bombs are Result types in other languages, but hey, defusing a bomb is much cooler than handling a boring result
             bomb<str, BrowserStorageError> storageWriteBomb = localStorage(key: "abcd", value: date())
             
             defuse storageWriteBomb {
