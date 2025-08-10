@@ -94,20 +94,7 @@ noth feed(mustbe Eatable food) {
 }
 ```
 
-### Static Dependency Injection with `settype`
 
-Joy includes a special internal keyword, `settype`, to support advanced compile-time features like static dependency injection. It allows the compiler to assign a concrete type to a specially-designed typeless parameter, which is essential for configuring bundles without a runtime overhead.
-
-This feature is used internally by the framework and is not part of the public API available to developers.
-
-```joy
-// Example from a bundle definition
-Bundle load(str licenseKey) {
-    // 'settype' assigns the 'Settings' type to the 'settings' parameter
-    // The compiler resolves this based on a predefined usage
-    return (settings: settype Settings(licenseKey: licenseKey, apiKey: "def"))
-}
-```
 
 ---
 

@@ -1,17 +1,11 @@
 bring ./settings.joy // When bringing an external file, function calls need to be like settings.functionName(),
 // But `thing`s can be used without prefixing them with the bundle name
 
-// Bundles don't have a lifetime, so they don't have an entry file
-// They have the load function instead, that handles params passed to the bundle in "bring" statement
-// e.g. license checking or whatever
-Bundle load(str licenseKey) {
-    // settype is a special keyword used to define the type of typeless parameters,
-    // Currently only used internally and for this very purpose
-    // There's no public syntax for defining a typeless parameter,
-    // As it would be need runtime reflection depending on the usage
-    // Because the settings Static DI has a predefined usage, in this situation
-    // The code will word without needing a runtime, the compiler will handle it
-    return (settings: settype Settings(licenseKey: licenseKey, apiKey: "def"))
+// Bundles are configured via a `load` function that returns a settings `thing`.
+// This function is called when the bundle is brought into a project,
+// allowing for dynamic configuration.
+Settings load(str licenseKey) {
+    return (licenseKey: licenseKey, apiKey: "def")
 }
 
 noth testFunction() {
