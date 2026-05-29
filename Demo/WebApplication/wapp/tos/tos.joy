@@ -4,18 +4,18 @@
 View Page() {
     bucket<str> tosBody = ()
     str userLocale = "en"
-    
+
     branch(tosBody, bring /*read*/ userLocale) { // The read (readonly reference) keyword will automatically be placed by the compiler
         str tos = getTosForLocale(userLocale)
         return tos
     }
-    
+
     return <div>
             <h1>Terms of Service</h1>
-            <Wait for={expose str tos = tosBody(10s)} // The wait component is the equivalent of Suspense in React
+            <Wait for={tosBody(10s) as str tos} // The wait component is the equivalent of Suspense in React
                   fallback={<p>Loading...</p>}
                   timeout={<p>Sorry, we are having trouble loading the terms of service.</p>}>
-                  
+
                 <p>{tos}</p>
             </Wait>
         </div>

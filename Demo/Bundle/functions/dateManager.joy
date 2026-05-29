@@ -1,4 +1,4 @@
-bring ./settings.joy
+bring local:settings
 
 expose bit isValid() {
     // This way functions inside a bundle can read the configuration passed to them by the load function
@@ -8,7 +8,7 @@ expose bit isValid() {
 
 noth arrays() {
     bit[] bits = [1, 0, 1] // Make a dynamically sized array
-    bit[...] moreBits = [1, 0, 0, 1] // Equalivent to bit[4]
+    bit[...] moreBits = [1, 0, 0, 1] // Equivalent to bit[4]
     bit[100] evenMore = [1] // Room for appending without resizing
 
     // We have Linq!
@@ -19,7 +19,7 @@ noth arrays() {
     }
 
     // Ints and Unsigned Ints numbers are powers of two
-    // u5 is a 2^5 = 32 bit unsigned intager
+    // u5 is a 2^5 = 32 bit unsigned integer
     for((bit b, u5 i) in bits) {
         // Do something with it
     }

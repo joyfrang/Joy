@@ -1,21 +1,25 @@
 // This file is the implementation of the Terms of Service page.
 // This time, the code goes to the client-side, and the browser handles managing the state of the Terms of Service page.
 Island Page() {
-    bucket<str> tosBody = () // Makes an unbuffered channel
-    unsafe force some(expose str tos) = localStorage("userLocale")
-    
-    // The server function initializes an RPC call stack in the server and calls it here
-    server(tosBody, bring userLocale) {
-        str tos = getTosForLocale(userLocale)
-        return tos
+    bucket<str> tosBody = ()
+    maybe<str> userLocale = localStorage("userLocale")
+
+    defuse userLocale {
+        some(str locale) => {
+            server(tosBody, bring locale) {
+                str tos = getTosForLocale(locale)
+                return tos
+            }
+        }
+        noth => forbidden()
     }
-    
+
     return <div>
             <h1>Terms of Service</h1>
-            <Wait for={expose str tos = tosBody(10s /* Must have a timeout */)} // The wait component is the equivalent of Suspense in React
+            <Wait for={tosBody(10s) as str tos} // The wait component is the equivalent of Suspense in React
                   fallback={<p>Loading...</p>}
                   timeout={<p>Sorry, we are having trouble loading the terms of service.</p>}>
-                  
+
                 <p>{tos}</p>
             </Wait>
         </div>

@@ -1,13 +1,12 @@
-bring project:db/Post
+bring local:database/objects/post
 
 // Joy's router is quite similar to NextJS app router
 
-// TODO: Should fetch post from DB using the ORM and check if it's not null
 // The View or Island named "Page" from the file having the same name as the parent folder (except for index.joy) will be given the pageload
 View Page(str permalink->vPermalink) {
     maybe<Post> post = db.posts.first(post => post.permalink == permalink)
     defuse post {
-        Post(str title->vPostTitle, str body) => expose title, body
+        some(Post(str title->vPostTitle, str body)) => expose title, body
         noth => notFound()
     }
     return <p>Post post post at {permalink}... {title} and {body} <UserAgent/></p>
@@ -18,53 +17,43 @@ View Page(str permalink->vPermalink) {
 Island UserAgent() {
     str ua = js.execute(code: /*The code that returns the UA*/)
     str browser = getBrowserNameFromUA(ua) // Imagine it's implemented somewhere nearby
-    
+
     return <p>Your browser is {browser}</p>
 }
 
-// There's also a similar tag for localstorage
-// TODO: Have to make a decision to wither pick up the function-based API or the tag-based
-// The tag-based is much cooler as it gives you a variable that automatically changes the underlying
-// Browser storage key as you read/write to it
-// However it needs proper error handling even if it's gonna be used
-#sessionStorage(key: "useless", expose u5 useless)
+// #sessionStorage and #localStorage tags are replaced by simple function calls
+// localStorage("key") returns maybe<str>, defuse it normally
 Island PersistentStorage() {
-    // maybe is a "thing", which has similar functionality to Options in other less cool languages
-    maybe<str> lastVisit = localStorage(key: "abcd") // Specifying the parameters name is optional
-    
+    maybe<str> lastVisit = localStorage("abcd")
+
     defuse lastVisit {
         some(str date) => {
-            // Do something with it..
-            
-            // Bombs are Result types in other languages, but hey, defusing a bomb is much cooler than handling a boring result
-            bomb<str, BrowserStorageError> storageWriteBomb = localStorage(key: "abcd", value: date())
-            
-            defuse storageWriteBomb {
-                fine(_) => celebrate()
-                BrowserStorageError(_, _) => panic() // Strict error handling be like:
+            maybe<str> writeResult = localStorage("abcd", date())
+
+            defuse writeResult {
+                some(_) => celebrate()
+                noth => panic()
             }
         }
-        noth => forbidden() // Perfect edge case handling
+        noth => forbidden()
     }
 }
 
-// ValidationResult is an internal type:
-// thing ValidationResult {
-    // Valid()
-    // The "existing" keyword is used for referencing a "thing" as an option
-    // As the Error constructor is defined in the Error type itself, there
-    // Shouldn't be any parentheses here
-    // existing Error
+// Validator functions are regular Joy functions prefixed with 'v'.
+// A parameter annotated ->vName means: run vName on the passed value before
+// entering the function body. If the validator returns a noth/error variant,
+// it propagates to the caller. The function body can assume the value is valid.
+// Validators can also accept configuration: ->vMaxLength(1000) passes 1000 as
+// a second argument to the validator function.
+//
+// thing PermalinkError {
+//     TooLong(str permalink)
+//     InvalidCharacter(str permalink, str character)
 // }
-
-// Pillar functions are equalevent of static functions in other programming languages
-// A paramater validator that is also pillar, can verify arguments in compile-time
-// If the provided params are not dynamic
-// Update, no pillar keyword, the compiler has to figure it out and autoly insert it
-// It shouldn't be a public API
-// If the validator function returns an error, it will be passed to the caller functions' caller
-// e.g. the caller of Post function in this case, seeming like that function has returned the
-// error
-/* pillar */ ValidationResult permalinkValidator(str param) {
-    // Do the checks
-}
+//
+// maybe<str> vPermalink(str value) {
+//     if(value.length > 100) {
+//         return noth
+//     }
+//     return some(value)
+// }
