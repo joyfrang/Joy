@@ -1,9 +1,9 @@
 bring html.joy
 
 // As the filename is already layout.joy, the function name can be anything
-#parent(HtmlShell) // The #parent tag can be used to override the layout's parent layout
+#parent(html.HtmlShell) // The #parent tag can be used to override the layout's parent layout
 // #parent(noth) // Also can be set to noth so there's no parent layout
-Layout BlogLayout() {
+Layout BlogLayout(Renderable children) {
     //...
     return {children}
 }
