@@ -1,7 +1,6 @@
-// bring can be used to import a file, so its exposed functions can be used from here
-bring ./html.joy
+bring local:wapp/html
 
-#parent(html.HtmlShell)
 Layout MainLayout(Renderable children) {
-    return <div>{children}</div>
+    return (parent: html.HtmlShell,
+        <div>{children}</div>)
 }

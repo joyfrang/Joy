@@ -9,19 +9,20 @@ thing Post {
     )
 }
 
-// The db block declares how this thing maps to a database table.
+// The config block declares how this thing maps to a database table.
 // Only fields that need non-default behavior are listed.
-db Post {
+// All other fields are persisted using their field name as the column name.
+config joy:database/table Post {
     table: "posts"
     id: primaryKey, autoIncrement
     date: dbDate
     permalink: unique
 }
 
-// The json block declares serialization behavior.
+// The config block declares serialization behavior for JSON.
 // Only fields that deviate from defaults are listed.
-// By default, all fields serialize using their field name as the key.
-json Post {
+// By default, all fields serialize using their field name as the JSON key.
+config joy:json/object Post {
     id: ignore
     title: key("PostTitle")
 }

@@ -1,4 +1,4 @@
-bring unsafe bundleName(/*the params that load function takes*/)/functions/dateManager
+bring author:bundleName/functions/dateManager
 
 View Page() {
     bit isValid = dateManager.isValid()

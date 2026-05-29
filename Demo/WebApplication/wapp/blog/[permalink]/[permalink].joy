@@ -13,7 +13,6 @@ View Page(str permalink->vPermalink) {
 }
 
 // This client-side Island component is supposed to display user's device information
-// As this function is already returning an Island, it doesn't need to have the #client tag
 Island UserAgent() {
     str ua = js.execute(code: /*The code that returns the UA*/)
     str browser = getBrowserNameFromUA(ua) // Imagine it's implemented somewhere nearby
@@ -21,7 +20,6 @@ Island UserAgent() {
     return <p>Your browser is {browser}</p>
 }
 
-// #sessionStorage and #localStorage tags are replaced by simple function calls
 // localStorage("key") returns maybe<str>, defuse it normally
 Island PersistentStorage() {
     maybe<str> lastVisit = localStorage("abcd")

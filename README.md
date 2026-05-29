@@ -37,7 +37,7 @@ noth printUserDetails(User user) {
 
 ### Closures
 
-Anonymous functions (closures) follow the same syntax as named functions but without a name. Variables from the parent scope must be explicitly brought in with `bring`:
+Anonymous functions (closures) follow the same syntax as named functions but without a name. Variables from the parent scope must be explicitly captured with `bring`:
 
 ```joy
 str(bring str userName) {
@@ -96,11 +96,9 @@ impl User {
 user.deactivate()
 ```
 
-Contracts can be implemented by any `thing`, allowing for flexible and type-safe polymorphism without the complexity of traditional inheritance hierarchies.
-
 ### Generics with `mustbe`
 
-Joy supports generic programming by constraining types to contracts using the `mustbe` keyword. This allows functions and `thing`s to operate on any type that fulfills a specific contract, ensuring both flexibility and type safety. This is the mechanism that powers built-in generic types like `maybe<T>`.
+Joy supports generic programming by constraining types to contracts using the `mustbe` keyword. This allows functions and `thing`s to operate on any type that fulfills a specific contract, ensuring both flexibility and type safety.
 
 ```joy
 // A function that accepts any type implementing the Eatable contract
@@ -109,9 +107,13 @@ noth feed(mustbe Eatable food) {
 }
 ```
 
-### Built-in `thing`s: `maybe<T>`
+### Built-in `thing`s: `maybe<T>` and `bomb<T, E>`
 
-`maybe<T>` is a standard library `thing` representing a value that may or may not exist. It has two variants: `some(T value)` and `noth`. You `defuse` it like any other `thing`:
+These are standard library `thing`s — not special compiler constructs. They exist as shared vocabulary and convention. The type system is powerful enough to express them without any compiler magic; they ship with Joy so everyone agrees on the same pattern.
+
+#### `maybe<T>`
+
+Represents a value that may or may not exist. Variants: `some(T value)` and `noth`.
 
 ```joy
 maybe<str> name = getNameFromCache()
@@ -122,7 +124,65 @@ defuse name {
 }
 ```
 
-`maybe<T>` is not a special compiler construct — it is a regular `thing` that ships with Joy as a convention for nullable values.
+#### `bomb<T, E>`
+
+Represents an operation that can either succeed with a value or fail with an error. Variants: `fine(T value)` and the variants of whatever `thing` is passed as `E`.
+
+The `existing` keyword lets `bomb` reference the variants of an existing `thing` as its error cases, so your error type can have as many cases as needed:
+
+```joy
+thing PostError {
+    NotFound(str permalink)
+    Unauthorized()
+}
+
+bomb<Post, PostError> getPost(str permalink) {
+    // ...
+}
+
+// Callers defuse it exhaustively
+defuse getPost(permalink: "hello") {
+    fine(Post p)      => renderPost(p)
+    NotFound(str s)   => notFound()
+    Unauthorized()    => forbidden()
+}
+```
+
+### Error Handling Model
+
+Joy's error handling is built around `bomb<T, E>` and `defuse`. There is no exception system and no hidden control flow.
+
+**Returning errors:** A function signals failure by returning an error variant of its `bomb` type:
+
+```joy
+bomb<str, PostError> findTitle(str permalink) {
+    maybe<Post> post = db.posts.first(p => p.permalink == permalink)
+    defuse post {
+        some(Post(str title, _)) => return fine(title)
+        noth                     => return NotFound(permalink)
+    }
+}
+```
+
+**Handling errors:** Callers use `defuse` and must handle every variant. There is no way to silently ignore a `bomb`:
+
+```joy
+defuse findTitle(permalink: "hello") {
+    fine(str title)   => print(title)
+    NotFound(str s)   => print($"No post at {s}")
+}
+```
+
+**Propagating errors:** If a function wants to pass a `bomb` up to its own caller without handling it, it uses `rise`:
+
+```joy
+bomb<str, PostError> getPostTitle(str permalink) {
+    str title = rise findTitle(permalink) // if findTitle detonates, the error rises to our caller
+    return fine(title.uppercase())
+}
+```
+
+`rise` is the Joy equivalent of `?` in Rust or `try` in Zig. The error type of the current function must be compatible with the error type of the expression being risen.
 
 ### Validators
 
@@ -163,11 +223,19 @@ The validator name must match a function in scope. Unknown validator references 
 
 ---
 
-## Data Persistence and Serialization
+## Configuration System
 
-### The `db` block
+Joy provides a general `config` block for attaching metadata and behavior to `thing`s. Rather than one-off language features, `config` is an extensible protocol: the namespace before the `/` identifies the bundle providing the behavior, and the path after identifies the configuration type.
 
-The `db` block declares how a `thing` maps to a database table. Only fields that need non-default behavior are listed — all other fields are persisted using their field name as the column name.
+```joy
+config joy:database/table Post { ... }   // built-in Joy database ORM
+config joy:json/object Post { ... }      // built-in Joy JSON serialization
+config someBundle:graphql/type User { ... } // a third-party bundle's config
+```
+
+### `config joy:database/table`
+
+Declares how a `thing` maps to a database table. Only fields that need non-default behavior are listed — all other fields are persisted using their field name as the column name.
 
 ```joy
 thing Post {
@@ -181,15 +249,15 @@ thing Post {
     )
 }
 
-db Post {
-    table: "posts"       // override the default table name
+config joy:database/table Post {
+    table: "posts"
     id: primaryKey, autoIncrement
-    date: dbDate         // stored and queried as a date type
+    date: dbDate
     permalink: unique
 }
 ```
 
-Valid `db` field options:
+Valid field options:
 
 | Option | Meaning |
 |---|---|
@@ -200,18 +268,18 @@ Valid `db` field options:
 | `references(OtherThing.field)` | Foreign key relationship |
 | `nullable` | Field may be null in the database |
 
-### The `json` block
+### `config joy:json/object`
 
-The `json` block declares serialization behavior. Only fields that deviate from defaults are listed. By default, all fields serialize using their field name as the JSON key.
+Declares JSON serialization behavior. Only fields that deviate from defaults are listed. By default, all fields serialize using their field name as the JSON key.
 
 ```joy
-json Post {
-    id: ignore             // excluded from serialization entirely
-    title: key("PostTitle") // serialized under a different key
+config joy:json/object Post {
+    id: ignore
+    title: key("PostTitle")
 }
 ```
 
-Valid `json` field options:
+Valid field options:
 
 | Option | Meaning |
 |---|---|
@@ -225,24 +293,22 @@ Valid `json` field options:
 ### Memory Model
 
 * **Automatic ARC**: The compiler inserts `inc_ref` and `dec_ref` calls; developers never manage them manually.
-* **Clone-by-default**: Assignments perform deep copies unless marked `share`:
+* **Clone-by-default with structural sharing**: Assignments perform a logical clone. Internally, the compiler implements this via persistent data structures and copy-on-write (COW), so unchanged parts of a structure are shared rather than copied. The result is value semantics without the cost of always copying everything.
 
   ```joy
-  User a = b          // deep clone
-  User a = share b    // shared reference via ARC
+  User a = b          // logical clone — a is independent from b
+  User a = share b    // explicit shared reference via ARC
   ```
 
-* **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership.
-
-  * Use alternative patterns (IDs, one-way ownership) to avoid cycles.
+* **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership. Use alternative patterns (IDs, one-way ownership) to avoid cycles.
 
 ### Concurrent Blocks: `branch` and `server`
 
-`branch` and `server` are not function calls — they are concurrent blocks, similar to how `for` and `if` are control flow constructs. They have their own scoping rules and the compiler handles their lifetime as part of structured concurrency.
+`branch` and `server` are not function calls — they are concurrent blocks, similar to how `for` and `if` are control flow constructs. The compiler manages their lifetime as part of structured concurrency.
 
 #### `branch`
 
-Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`. By default, `bring` performs a deep clone. Use `bring share` for a shared ARC reference.
+Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`. By default, `bring` performs a logical clone (COW). Use `bring share` for a shared ARC reference.
 
 ```joy
 User user = User("Matin")
@@ -281,7 +347,6 @@ The `server` block initiates an RPC call stack on the server. Results are consum
 
    ```joy
    bucket<bit> b = (5, Wait)
-   // Sender can check b.isFull() or await b.available()
    ```
 
 ---
@@ -310,7 +375,7 @@ The framework extends Joy's language principles to web development. Functions ar
 
 ### Server RPC
 
-Islands can call server closures via `server()`, passing in a pre-configured `bucket`:
+Islands can call server closures via `server`, passing in a pre-configured `bucket`:
 
 ```joy
 bucket<str> codenameB = (3, DropLast)
@@ -417,8 +482,9 @@ Island UserProfile(User user) {
 
 ## TODOs
 
-* [x] Generic Types (proper implementation of `maybe` keyword depends on it)
+* [x] Generic Types (proper implementation of `maybe` and `bomb` depends on it)
 * [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
+* [x] Error handling model (`bomb`, `defuse`, `rise`)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [ ] How parameters should be passed in function calls?
