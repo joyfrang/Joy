@@ -1,9 +1,7 @@
-// An exposed renderable can be used from outside the bundle
-expose View Calender() {
+expose View Calender() { ~> an exposed renderable can be used from outside the bundle
     return <PrivateCalender/>
 }
 
-// This is internal and unexposed, so only other components in the same file can use it
-Island PrivateCalender() {
+Island PrivateCalender() { ~> internal and unexposed — only usable within this file
     return <span>...</span>
 }

@@ -17,6 +17,28 @@ Joy's design is guided by the "Joyful Programming" paradigm: a pragmatic approac
 
 ## The Joy Language
 
+### Comments
+
+Joy uses arrow-based comment syntax. The arrow points at the commented text.
+
+```joy
+This is a leading comment <~
+noth something(Eatable food) {
+    User u = getUser() ~> this is a trailing comment
+}
+```
+
+For multi-line block comments, use `~>>` and `<<~`. Everything between them is commented:
+
+```joy
+~>>
+This entire block is commented out.
+noth oldImplementation() {
+    ...
+}
+<<~
+```
+
 ### Data Modeling with `thing`
 
 Joy's primary tool for data modeling is the `thing` keyword, which defines Algebraic Data Types (ADTs). Each variant can carry its own data, and exhaustive pattern matching via `defuse` ensures correctness.
@@ -35,6 +57,22 @@ noth printUserDetails(User user) {
 }
 ```
 
+A variant can reference an already-defined `thing` as one of its cases using `bring`:
+
+```joy
+thing DatabaseError {
+    ConnectionFailed()
+    Timeout()
+}
+
+thing AppError {
+    NotFound(str resource)
+    bring DatabaseError
+}
+```
+
+When defusing an `AppError`, `ConnectionFailed` and `Timeout` are available as flat variants alongside `NotFound`.
+
 ### Closures
 
 Anonymous functions (closures) follow the same syntax as named functions but without a name. Variables from the parent scope must be explicitly captured with `bring`:
@@ -52,13 +90,11 @@ Joy supports interface-like abstractions through **contracts** (`cont`) and thei
 Instance methods take `self` as their first parameter, typed as the `thing` they belong to. They are called with dot syntax: `user.eat("hunger")`. The compiler recognizes the first `self` parameter and treats it as the receiver — no special keyword required.
 
 ```joy
-// Define a contract (interface)
 cont Eatable {
     bit eat(str reason)
     bit digest()
 }
 
-// Implement the contract for a specific type
 impl User:Eatable {
     bit eat(User self, str reason) {
         print($"User ate something for reason: {reason}")
@@ -71,7 +107,6 @@ impl User:Eatable {
     }
 }
 
-// Now User can be used wherever Eatable is expected
 noth feedSomeone(Eatable hungry) {
     hungry.eat("hunger")
     hungry.digest()
@@ -79,7 +114,7 @@ noth feedSomeone(Eatable hungry) {
 
 noth example() {
     User user = Admin(id: 1, name: "Matin", accessLevel: 250)
-    feedSomeone(user) // User implements Eatable, so this works
+    feedSomeone(user) ~> User implements Eatable, so this works
 }
 ```
 
@@ -88,24 +123,24 @@ noth example() {
 ```joy
 impl User {
     noth deactivate(User self) {
-        // deactivate this user
+        ~> deactivate this user
     }
 }
 
-// Called as:
-user.deactivate()
+user.deactivate() ~> called as
 ```
 
-### Generics with `mustbe`
+### Generics
 
-Joy supports generic programming by constraining types to contracts using the `mustbe` keyword. This allows functions and `thing`s to operate on any type that fulfills a specific contract, ensuring both flexibility and type safety.
+Joy supports generic programming by constraining types to contracts directly in the parameter type position. Any type that implements the contract is accepted — no extra keyword needed:
 
 ```joy
-// A function that accepts any type implementing the Eatable contract
-noth feed(mustbe Eatable food) {
+noth feed(Eatable food) {
     food.eat("Because it's dinner time!")
 }
 ```
+
+The compiler distinguishes contracts from concrete types, so no annotation is required to express the constraint.
 
 ### Built-in `thing`s: `maybe<T>` and `bomb<T, E>`
 
@@ -126,9 +161,7 @@ defuse name {
 
 #### `bomb<T, E>`
 
-Represents an operation that can either succeed with a value or fail with an error. Variants: `fine(T value)` and the variants of whatever `thing` is passed as `E`.
-
-The `existing` keyword lets `bomb` reference the variants of an existing `thing` as its error cases, so your error type can have as many cases as needed:
+Represents an operation that can either succeed or fail. The success variant is `fine(T value)`. The error variants come directly from whatever `thing` is passed as `E` — they appear flat alongside `fine` in a `defuse`, with no extra wrapping.
 
 ```joy
 thing PostError {
@@ -137,14 +170,13 @@ thing PostError {
 }
 
 bomb<Post, PostError> getPost(str permalink) {
-    // ...
+    ~> ...
 }
 
-// Callers defuse it exhaustively
 defuse getPost(permalink: "hello") {
-    fine(Post p)      => renderPost(p)
-    NotFound(str s)   => notFound()
-    Unauthorized()    => forbidden()
+    fine(Post p)    => renderPost(p)
+    NotFound(str s) => notFound()
+    Unauthorized()  => forbidden()
 }
 ```
 
@@ -168,8 +200,8 @@ bomb<str, PostError> findTitle(str permalink) {
 
 ```joy
 defuse findTitle(permalink: "hello") {
-    fine(str title)   => print(title)
-    NotFound(str s)   => print($"No post at {s}")
+    fine(str title)  => print(title)
+    NotFound(str s)  => print($"No post at {s}")
 }
 ```
 
@@ -177,7 +209,7 @@ defuse findTitle(permalink: "hello") {
 
 ```joy
 bomb<str, PostError> getPostTitle(str permalink) {
-    str title = rise findTitle(permalink) // if findTitle detonates, the error rises to our caller
+    str title = rise findTitle(permalink) ~> if findTitle detonates, the error rises to our caller
     return fine(title.uppercase())
 }
 ```
@@ -196,8 +228,6 @@ maybe<str> vPermalink(str value) {
     return some(value)
 }
 
-// The caller of Page must handle the maybe<View> that results
-// from the ->vPermalink annotation
 View Page(str permalink->vPermalink) {
     return <p>Post at {permalink}</p>
 }
@@ -213,9 +243,8 @@ maybe<str> vMaxLength(str value, u5 max) {
     return some(value)
 }
 
-// 1000 is passed as 'max'
 noth createPost(str body->vMaxLength(1000)) {
-    // body is guaranteed to be at most 1000 characters here
+    ~> body is guaranteed to be at most 1000 characters here
 }
 ```
 
@@ -225,15 +254,15 @@ The validator name must match a function in scope. Unknown validator references 
 
 ## Configuration System
 
-Joy provides a general `config` block for attaching metadata and behavior to `thing`s. Rather than one-off language features, `config` is an extensible protocol: the namespace before the `/` identifies the bundle providing the behavior, and the path after identifies the configuration type.
+Joy provides a general `setup` block for attaching metadata and behavior to `thing`s. Rather than one-off language features, `setup` is an extensible protocol: the namespace before the `/` identifies the bundle providing the behavior, and the path after identifies the configuration type.
 
 ```joy
-config joy:database/table Post { ... }   // built-in Joy database ORM
-config joy:json/object Post { ... }      // built-in Joy JSON serialization
-config someBundle:graphql/type User { ... } // a third-party bundle's config
+setup joy:database/table Post { ... }      ~> built-in Joy database ORM
+setup joy:json/object Post { ... }         ~> built-in Joy JSON serialization
+setup someBundle:graphql/type User { ... } ~> a third-party bundle's config
 ```
 
-### `config joy:database/table`
+### `setup joy:database/table`
 
 Declares how a `thing` maps to a database table. Only fields that need non-default behavior are listed — all other fields are persisted using their field name as the column name.
 
@@ -249,7 +278,7 @@ thing Post {
     )
 }
 
-config joy:database/table Post {
+setup joy:database/table Post {
     table: "posts"
     id: primaryKey, autoIncrement
     date: dbDate
@@ -268,12 +297,12 @@ Valid field options:
 | `references(OtherThing.field)` | Foreign key relationship |
 | `nullable` | Field may be null in the database |
 
-### `config joy:json/object`
+### `setup joy:json/object`
 
 Declares JSON serialization behavior. Only fields that deviate from defaults are listed. By default, all fields serialize using their field name as the JSON key.
 
 ```joy
-config joy:json/object Post {
+setup joy:json/object Post {
     id: ignore
     title: key("PostTitle")
 }
@@ -296,8 +325,8 @@ Valid field options:
 * **Clone-by-default with structural sharing**: Assignments perform a logical clone. Internally, the compiler implements this via persistent data structures and copy-on-write (COW), so unchanged parts of a structure are shared rather than copied. The result is value semantics without the cost of always copying everything.
 
   ```joy
-  User a = b          // logical clone — a is independent from b
-  User a = share b    // explicit shared reference via ARC
+  User a = b       ~> logical clone — a is independent from b
+  User a = share b ~> explicit shared reference via ARC
   ```
 
 * **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership. Use alternative patterns (IDs, one-way ownership) to avoid cycles.
@@ -313,13 +342,11 @@ Spawns an async task tied to the current scope. Exiting the scope cancels all ch
 ```joy
 User user = User("Matin")
 
-// Clone-by-value capture
-branch(bring User user) {
+branch(bring User user) {    ~> clone-by-value capture
     print(user.name)
 }
 
-// Shared (atomic ARC) capture
-branch(bring share User user) {
+branch(bring share User user) { ~> shared (atomic ARC) capture
     user.name = "Notmatin"
 }
 ```
@@ -356,9 +383,9 @@ The `server` block initiates an RPC call stack on the server. Results are consum
 Joy has three import namespaces, all using the same `bring` syntax:
 
 ```joy
-bring joy:database/postgres          // Joy standard library
-bring author:packageName/file        // approved third-party bundle
-bring local:path/to/file             // project-local file (no .joy extension, path from project root)
+bring joy:database/postgres     ~> Joy standard library
+bring author:packageName/file   ~> approved third-party bundle
+bring local:path/to/file        ~> project-local file (no .joy extension, path from project root)
 ```
 
 ---
@@ -404,17 +431,10 @@ The built-in `<Wait>` component declaratively consumes buckets with timeouts and
 Joy uses `lets` as the command-line tool for running commands and managing projects:
 
 ```bash
-# Create a new project named "joy-app"
-$ lets make project joy-app
-
-# Run the development server
-$ lets run
-
-# Build a production-ready web application
-$ lets build --release
-
-# Run tests
-$ lets test
+$ lets make project joy-app   # Create a new project named "joy-app"
+$ lets run                    # Run the development server
+$ lets build --release        # Build a production-ready web application
+$ lets test                   # Run tests
 ```
 
 ---
@@ -422,7 +442,7 @@ $ lets test
 ## A Complete Example: "Joyful Profile" App
 
 ```joy
-// main.joy
+main.joy <~
 
 thing User {
     Admin(u5 id, str name, u3 accessLevel)

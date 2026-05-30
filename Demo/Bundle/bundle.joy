@@ -1,9 +1,9 @@
-bring local:settings // When bringing a local file, function calls need to be like settings.functionName(),
-// But `thing`s can be used without prefixing them with the bundle name
+bring local:settings ~> When bringing a local file, function calls need to be like settings.functionName(),
+~> but `thing`s can be used without prefixing them with the bundle name
 
-// Bundles are configured via a `load` function that returns a settings `thing`.
-// This function is called when the bundle is brought into a project,
-// allowing for dynamic configuration.
+~> Bundles are configured via a `load` function that returns a settings `thing`.
+~> This function is called when the bundle is brought into a project,
+~> allowing for dynamic configuration.
 Settings load(str licenseKey) {
     return (licenseKey: licenseKey, apiKey: "def")
 }

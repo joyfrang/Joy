@@ -1,27 +1,27 @@
 bring local:settings
 
 expose bit isValid() {
-    // This way functions inside a bundle can read the configuration passed to them by the load function
-    maybe<str> something = settings().licenseKey /* Settings is a system function returning the type of the settings, specified in the bundle.joy and figures out everything at compile-time */
+    ~> settings() is a system function returning the type of the settings,
+    ~> specified in bundle.joy — figures out everything at compile-time
+    maybe<str> something = settings().licenseKey
     return 1
 }
 
 noth arrays() {
-    bit[] bits = [1, 0, 1] // Make a dynamically sized array
-    bit[...] moreBits = [1, 0, 0, 1] // Equivalent to bit[4]
-    bit[100] evenMore = [1] // Room for appending without resizing
+    bit[] bits = [1, 0, 1] ~> dynamically sized array
+    bit[...] moreBits = [1, 0, 0, 1] ~> equivalent to bit[4]
+    bit[100] evenMore = [1] ~> room for appending without resizing
 
-    // We have Linq!
-    maybe<bit> firstTrue = bits.where(b == 1).first()
+    maybe<bit> firstTrue = bits.where(b == 1).first() ~> we have Linq!
 
     for(bit b in bits) {
-        // do something with b
+        ~> do something with b
     }
 
-    // Ints and Unsigned Ints numbers are powers of two
-    // u5 is a 2^5 = 32 bit unsigned integer
+    ~> ints and unsigned ints are powers of two
+    ~> u5 is 2^5 = 32 bit unsigned integer
     for((bit b, u5 i) in bits) {
-        // Do something with it
+        ~> do something with it
     }
 }
 

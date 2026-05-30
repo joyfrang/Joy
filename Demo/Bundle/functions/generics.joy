@@ -1,8 +1,8 @@
 thing GenericsSample {
-    // Generic types are specified with mustbe keyword
-    A(mustbe Eatable food, bit fastOrSlow) // Accepts any type that implements the Eatable contract
+    ~> generic types are constrained to contracts directly — no extra keyword needed
+    A(Eatable food, bit fastOrSlow) ~> accepts any type that implements the Eatable contract
 }
 
-noth functionThatExists(mustbe Eatable food, bit fastOrSlow) {
-    // Implementation here
+noth functionThatExists(Eatable food, bit fastOrSlow) {
+    ~> implementation here
 }

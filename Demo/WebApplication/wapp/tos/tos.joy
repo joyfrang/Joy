@@ -1,18 +1,18 @@
-// This file demonstrates how to use Joy's concurrency features
-// It will do all the loading and updating UI on the server, using http streaming
-// Zero client-side logic is required
+~> This file demonstrates how to use Joy's concurrency features.
+~> It will do all the loading and updating UI on the server, using http streaming.
+~> Zero client-side logic is required.
 View Page() {
     bucket<str> tosBody = ()
     str userLocale = "en"
 
-    branch(tosBody, bring /*read*/ userLocale) { // The read (readonly reference) keyword will automatically be placed by the compiler
+    branch(tosBody, bring userLocale) { ~> the compiler automatically treats userLocale as read-only here
         str tos = getTosForLocale(userLocale)
         return tos
     }
 
     return <div>
             <h1>Terms of Service</h1>
-            <Wait for={tosBody(10s) as str tos} // The wait component is the equivalent of Suspense in React
+            <Wait for={tosBody(10s) as str tos} ~> Wait is the equivalent of Suspense in React
                   fallback={<p>Loading...</p>}
                   timeout={<p>Sorry, we are having trouble loading the terms of service.</p>}>
 

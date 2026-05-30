@@ -1,9 +1,7 @@
 bring local:wapp/html
 
-// As the filename is already layout.joy, the function name can be anything
+~> As the filename is already layout.joy, the function name can be anything.
 Layout BlogLayout(Renderable children) {
-    //...
     return (parent: html.HtmlShell, {children})
-    // Also we could clear "parent" like this:
-    // return (parent: noth, {children})
+    ~> to clear the parent layout: return (parent: noth, {children})
 }
