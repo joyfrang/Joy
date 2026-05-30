@@ -3,10 +3,10 @@ bring local:database/objects/post
 Joy's router is quite similar to NextJS app router. <~
 The View or Island named "Page" from the file having the same name as the parent folder <~
 (except for index.joy) will be given the pageload. <~
-View Page(str permalink->vPermalink) {
+View Page(str permalink) {
     maybe<Post> post = db.posts.first(post => post.permalink == permalink)
     defuse post {
-        some(Post(str title->vPostTitle, str body)) => expose title, body
+        some(Post(str title, str body)) => expose title, body
         noth => notFound()
     }
     return <p>Post post post at {permalink}... {title} and {body} <UserAgent/></p>
@@ -34,24 +34,3 @@ Island PersistentStorage() { ~> localStorage("key") returns maybe<str>, defuse i
         noth => forbidden()
     }
 }
-
-~>>
-Validator functions are regular Joy functions prefixed with 'v'.
-A parameter annotated ->vName means: run vName on the passed value before
-entering the function body. If the validator returns noth, the error propagates
-to the caller. The function body can assume the value is valid.
-Validators can also accept configuration: ->vMaxLength(1000) passes 1000 as
-a second argument to the validator function.
-
-thing PermalinkError {
-    TooLong(str permalink)
-    InvalidCharacter(str permalink, str character)
-}
-
-maybe<str> vPermalink(str value) {
-    if(value.length > 100) {
-        return noth
-    }
-    return some(value)
-}
-<<~

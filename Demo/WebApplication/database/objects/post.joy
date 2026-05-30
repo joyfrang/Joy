@@ -1,12 +1,21 @@
+thing PostError {
+    BodyTooLong(str body)
+    InvalidPermalink(str permalink)
+}
+
 thing Post {
     Post(
         u5 id,
         str title,
-        str body->vMaxLength(1000),
+        str body,
         str date,
         str author,
-        str permalink->vPermalink
-    )
+        str permalink
+    ) validate(PostError) {
+        if(body.length > 1000) { return BodyTooLong(body) }
+        if(!isValidPermalink(permalink)) { return InvalidPermalink(permalink) }
+        return fine()
+    }
 }
 
 Declares how this thing maps to a database table. <~

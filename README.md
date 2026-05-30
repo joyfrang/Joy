@@ -73,6 +73,50 @@ thing AppError {
 
 When defusing an `AppError`, `ConnectionFailed` and `Timeout` are available as flat variants alongside `NotFound`.
 
+### Validation
+
+Joy has no magic annotation-based validator system. Validation is done two ways:
+
+**Simple validation — plain function calls.** Write a function that returns `bomb` or `maybe` and call it explicitly. No ceremony, no new concepts:
+
+```joy
+bomb<str, PermalinkError> makePermalink(str value) {
+    if(value.length > 100) { return TooLong(value) }
+    if(!hasValidChars(value)) { return InvalidCharacter(value) }
+    return fine(value)
+}
+
+bomb<Post, PostError> createPost(str permalink) {
+    str validPermalink = rise makePermalink(permalink)
+    ~> ... build the post
+}
+```
+
+**Construction-time invariants — `validate` blocks.** A constructor can have a `validate(ErrorThing)` block that runs when the `thing` is constructed. Construction then returns `bomb<ThingType, ErrorThing>` instead of `ThingType` directly.
+
+```joy
+thing DateRangeError {
+    InvalidRange(str start, str end)
+    EmptyRange(str start)
+}
+
+thing DateRange {
+    DateRange(str start, str end) validate(DateRangeError) {
+        if(start >= end) { return InvalidRange(start, end) }
+        if(start == end) { return EmptyRange(start) }
+        return fine()
+    },
+    Forever() ~> no validate block — constructing this returns DateRange directly
+}
+```
+
+Rules for `validate` blocks:
+- `fine()` signals success — the compiler infers the constructed type from context
+- Every variant you `return` must exist in the specified `ErrorThing` — compile error otherwise
+- Not all variants of `ErrorThing` need to be used in a given block
+- Multiple constructors in the same `thing` can share the same `ErrorThing`
+- Constructors without a `validate` block return the type directly, not a `bomb`
+
 ### Closures
 
 Anonymous functions (closures) follow the same syntax as named functions but without a name. Variables from the parent scope must be explicitly captured with `bring`:
@@ -216,40 +260,6 @@ bomb<str, PostError> getPostTitle(str permalink) {
 
 `rise` is the Joy equivalent of `?` in Rust or `try` in Zig. The error type of the current function must be compatible with the error type of the expression being risen.
 
-### Validators
-
-Validators are regular Joy functions prefixed with `v`. A parameter annotated with `->vName` means: run `vName` on the passed value before entering the function body. If the validator returns `noth`, the error propagates to the caller. The function body can assume the value is already valid.
-
-```joy
-maybe<str> vPermalink(str value) {
-    if(value.length > 100) {
-        return noth
-    }
-    return some(value)
-}
-
-View Page(str permalink->vPermalink) {
-    return <p>Post at {permalink}</p>
-}
-```
-
-Validators can also accept configuration parameters:
-
-```joy
-maybe<str> vMaxLength(str value, u5 max) {
-    if(value.length > max) {
-        return noth
-    }
-    return some(value)
-}
-
-noth createPost(str body->vMaxLength(1000)) {
-    body is guaranteed to be at most 1000 characters here <~
-}
-```
-
-The validator name must match a function in scope. Unknown validator references are a compile error.
-
 ---
 
 ## Configuration System
@@ -271,11 +281,15 @@ thing Post {
     Post(
         u5 id,
         str title,
-        str body->vMaxLength(1000),
+        str body,
         str date,
         str author,
-        str permalink->vPermalink
-    )
+        str permalink
+    ) validate(PostError) {
+        if(body.length > 1000) { return BodyTooLong(body) }
+        if(!isValidPermalink(permalink)) { return InvalidPermalink(permalink) }
+        return fine()
+    }
 }
 
 setup joy:database/table Post {
@@ -342,7 +356,7 @@ Spawns an async task tied to the current scope. Exiting the scope cancels all ch
 ```joy
 User user = User("Matin")
 
-branch(bring User user) {    ~> clone-by-value capture
+branch(bring User user) {       ~> clone-by-value capture
     print(user.name)
 }
 
@@ -505,6 +519,7 @@ Island UserProfile(User user) {
 * [x] Generic Types (proper implementation of `maybe` and `bomb` depends on it)
 * [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
 * [x] Error handling model (`bomb`, `defuse`, `rise`)
+* [x] Validation system (`validate` blocks on constructors, plain function calls)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [ ] How parameters should be passed in function calls?
