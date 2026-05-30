@@ -123,7 +123,7 @@ noth example() {
 ```joy
 impl User {
     noth deactivate(User self) {
-        ~> deactivate this user
+        deactivate this user <~
     }
 }
 
@@ -244,7 +244,7 @@ maybe<str> vMaxLength(str value, u5 max) {
 }
 
 noth createPost(str body->vMaxLength(1000)) {
-    ~> body is guaranteed to be at most 1000 characters here
+    body is guaranteed to be at most 1000 characters here <~
 }
 ```
 

@@ -1,4 +1,4 @@
-~> Error Views
+Error Views <~
 
 View 403() { ~> 403 Forbidden
     return <strong>Whoops!</strong>

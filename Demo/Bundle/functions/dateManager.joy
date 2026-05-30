@@ -1,8 +1,8 @@
 bring local:settings
 
 expose bit isValid() {
-    ~> settings() is a system function returning the type of the settings,
-    ~> specified in bundle.joy — figures out everything at compile-time
+    settings() is a system function returning the type of the settings, <~
+    specified in bundle.joy — figures out everything at compile-time <~
     maybe<str> something = settings().licenseKey
     return 1
 }
@@ -15,13 +15,13 @@ noth arrays() {
     maybe<bit> firstTrue = bits.where(b == 1).first() ~> we have Linq!
 
     for(bit b in bits) {
-        ~> do something with b
+        do something with b <~
     }
 
-    ~> ints and unsigned ints are powers of two
-    ~> u5 is 2^5 = 32 bit unsigned integer
+    ints and unsigned ints are powers of two <~
+    u5 is 2^5 = 32 bit unsigned integer <~
     for((bit b, u5 i) in bits) {
-        ~> do something with it
+        do something with it <~
     }
 }
 

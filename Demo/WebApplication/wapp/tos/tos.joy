@@ -1,6 +1,6 @@
-~> This file demonstrates how to use Joy's concurrency features.
-~> It will do all the loading and updating UI on the server, using http streaming.
-~> Zero client-side logic is required.
+This file demonstrates how to use Joy's concurrency features. <~
+It will do all the loading and updating UI on the server, using http streaming. <~
+Zero client-side logic is required. <~
 View Page() {
     bucket<str> tosBody = ()
     str userLocale = "en"

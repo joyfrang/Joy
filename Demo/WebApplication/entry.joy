@@ -1,5 +1,5 @@
 Wapp entry() {
     Wapp wapp = (port: 8080, tls: false)
     return wapp
-    ~> or simply: return (port: 8080, tls: false)
+    or simply: return (port: 8080, tls: false) <~
 }

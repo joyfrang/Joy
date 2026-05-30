@@ -1,8 +1,8 @@
 thing GenericsSample {
-    ~> generic types are constrained to contracts directly — no extra keyword needed
+    generic types are constrained to contracts directly — no extra keyword needed <~
     A(Eatable food, bit fastOrSlow) ~> accepts any type that implements the Eatable contract
 }
 
 noth functionThatExists(Eatable food, bit fastOrSlow) {
-    ~> implementation here
+    implementation here <~
 }
