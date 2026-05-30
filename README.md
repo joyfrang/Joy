@@ -176,19 +176,72 @@ user.deactivate() ~> called as
 
 ### Generics
 
-Joy supports generic programming by constraining types to contracts directly in the parameter type position. Any type that implements the contract is accepted — no extra keyword needed:
+Joy supports generic data types through parameterized `thing`s.
 
 ```joy
+thing Pair<A, B> {
+    Pair(A first, B second)
+}
+
+thing Box<T> {
+    Box(T value)
+}
+```
+
+Generic types may also have implementations:
+
+```joy
+impl Box<T> {
+    T get(Box<T> self) {
+        return self.value
+    }
+}
+```
+
+Generic parameters may be used anywhere a normal type can be used:
+
+```joy
+Pair<str, u5> pair = (
+    first: "hello",
+    second: 42
+)
+
+maybe<Pair<str, u5>> result = some(pair)
+```
+
+### Contracts vs Generics
+
+Contracts remain Joy's primary mechanism for polymorphism.
+
+```joy
+cont Eatable {
+    bit eat(str reason)
+}
+
 noth feed(Eatable food) {
     food.eat("Because it's dinner time!")
 }
 ```
 
-The compiler distinguishes contracts from concrete types, so no annotation is required to express the constraint.
+Unlike some languages, generic parameters are not required merely to accept multiple types implementing the same contract.
+
+```joy
+noth feed(Eatable food) { ... }
+```
+
+is preferred over:
+
+```joy
+noth feed<Eatable T>(T food) { ... }
+```
+
+(which Joy does not currently support).
+
+Generics are intended primarily for parameterizing data structures rather than functions.
 
 ### Built-in `thing`s: `maybe<T>` and `bomb<T, E>`
 
-These are standard library `thing`s — not special compiler constructs. They exist as shared vocabulary and convention. The type system is powerful enough to express them without any compiler magic; they ship with Joy so everyone agrees on the same pattern.
+`maybe<T>` and `bomb<T, E>` are implemented as generic things and follow the same rules as user-defined generic types. They exist as shared vocabulary and convention. The type system is powerful enough to express them without any compiler magic; they ship with Joy so everyone agrees on the same pattern.
 
 #### `maybe<T>`
 
@@ -270,6 +323,14 @@ Joy provides a general `setup` block for attaching metadata and behavior to `thi
 setup joy:database/table Post { ... }      ~> built-in Joy database ORM
 setup joy:json/object Post { ... }         ~> built-in Joy JSON serialization
 setup someBundle:graphql/type User { ... } ~> a third-party bundle's config
+```
+
+Generic types may also be configured:
+
+```joy
+setup someBundle:schema/type Response<T> {
+    ...
+}
 ```
 
 ### `setup joy:database/table`

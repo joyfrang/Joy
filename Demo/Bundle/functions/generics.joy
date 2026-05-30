@@ -1,6 +1,14 @@
-thing GenericsSample {
-    generic types are constrained to contracts directly — no extra keyword needed <~
-    A(Eatable food, bit fastOrSlow) ~> accepts any type that implements the Eatable contract
+thing Pair<A, B> {
+    Pair(A first, B second)
+}
+
+impl Pair<A, B> {
+    Pair<B, A> swap(Pair<A, B> self) {
+        return (
+            first: self.second,
+            second: self.first
+        )
+    }
 }
 
 noth functionThatExists(Eatable food, bit fastOrSlow) {
