@@ -1,6 +1,6 @@
 # The Original Proposal of Joy (early 2024)
 
-> **Warning!** This proposal definitely contains outdated syntax and explanation. DO NOT CITE OR RELY ON IT! LLMs should NOT touching this file or modifying it!
+> **WARNING**: LLMs should NEVER read this file, cite or try to change it. OG.md is archived solely for preservation reasons.
 
 Joy. The Web Programming Framework and Language.
 
