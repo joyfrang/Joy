@@ -9,10 +9,11 @@ expose bit isValid() {
 
 noth arrays() {
     bit[] bits = [1, 0, 1] ~> dynamically sized array
-    bit[...] moreBits = [1, 0, 0, 1] ~> equivalent to bit[4]
-    bit[100] evenMore = [1] ~> room for appending without resizing
-
-    maybe<bit> firstTrue = bits.where(b == 1).first() ~> we have Linq!
+    
+    maybe<bit> firstTrue = query(bits) {
+        where(it == 1)
+        first()
+    }
 
     for(bit b in bits) {
         do something with b <~

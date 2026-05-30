@@ -392,6 +392,45 @@ Valid field options:
 
 ---
 
+## Queries
+
+Because Joy owns the language, ORM, and framework, queries are a first-class language construct rather than a library API.
+
+```joy
+Post[] posts = query(db.posts) {
+    where(author == "Matin")
+    orderBy(date descending)
+    take(10)
+}
+```
+
+Queries are compiler-understood and may be translated directly into optimized database operations.
+
+Queries also work on in-memory collections:
+
+```
+maybe<Post> post = query(posts) {
+    where(author == "Matin")
+    first()
+}
+```
+
+Common operations:
+
+```
+where(...)
+orderBy(...)
+take(...)
+skip(...)
+first()
+single()
+count()
+any()
+all(...)
+```
+
+---
+
 ## Memory Model and Concurrency
 
 ### Memory Model
