@@ -5,7 +5,7 @@ The View or Island named "Page" from the file having the same name as the parent
 (except for index.joy) will be given the pageload. <~
 View Page(str permalink) {
     maybe<Post> post = db.posts.first(post => post.permalink == permalink)
-    defuse post {
+    defuse(post) {
         some(Post(str title, str body)) => expose title, body
         noth => notFound()
     }
@@ -22,11 +22,11 @@ Island UserAgent() { ~> displays user's device information — already client-si
 Island PersistentStorage() { ~> localStorage("key") returns maybe<str>, defuse it normally
     maybe<str> lastVisit = localStorage("abcd")
 
-    defuse lastVisit {
+    defuse(lastVisit) {
         some(str date) => {
             maybe<str> writeResult = localStorage("abcd", date())
 
-            defuse writeResult {
+            defuse(writeResult) {
                 some(_) => celebrate()
                 noth => panic()
             }

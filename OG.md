@@ -59,7 +59,7 @@ noth sth() {
  User user = (69) // User is User, because the names are the same 
  User anotherUser = Admin(20)
 
- defuse user {
+ defuse(user) {
   User(id) => print($$"User with id $$id, $ is the US Currency")
   Admin(_) => {
    int level = user.level // Because we "know" this is admin, it's fine

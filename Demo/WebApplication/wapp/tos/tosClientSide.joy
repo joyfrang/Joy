@@ -4,7 +4,7 @@ Island Page() {
     bucket<str> tosBody = ()
     maybe<str> userLocale = localStorage("userLocale")
 
-    defuse userLocale {
+    defuse(userLocale) {
         some(str locale) => {
             server(tosBody, bring locale) {
                 str tos = getTosForLocale(locale)

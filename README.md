@@ -50,7 +50,7 @@ thing User {
 }
 
 noth printUserDetails(User user) {
-    defuse user {
+    defuse(user) {
         Admin(_, str name, u3 level) => print($"Admin: {name}, Level: {level}"),
         Viewer(_, str name)          => print($"Viewer: {name}")
     }
@@ -250,7 +250,7 @@ Represents a value that may or may not exist. Variants: `some(T value)` and `not
 ```joy
 maybe<str> name = getNameFromCache()
 
-defuse name {
+defuse(name) {
     some(str n) => print(n)
     noth        => print("not found")
 }
@@ -270,7 +270,7 @@ bomb<Post, PostError> getPost(str permalink) {
     ~> ...
 }
 
-defuse getPost(permalink: "hello") {
+defuse(getPost(permalink: "hello")) {
     fine(Post p)    => renderPost(p)
     NotFound(str s) => notFound()
     Unauthorized()  => forbidden()
@@ -286,7 +286,7 @@ Joy's error handling is built around `bomb<T, E>` and `defuse`. There is no exce
 ```joy
 bomb<str, PostError> findTitle(str permalink) {
     maybe<Post> post = db.posts.first(p => p.permalink == permalink)
-    defuse post {
+    defuse(post) {
         some(Post(str title, _)) => return fine(title)
         noth                     => return NotFound(permalink)
     }
@@ -296,7 +296,7 @@ bomb<str, PostError> findTitle(str permalink) {
 **Handling errors:** Callers use `defuse` and must handle every variant. There is no way to silently ignore a `bomb`:
 
 ```joy
-defuse findTitle(permalink: "hello") {
+defuse(findTitle(permalink: "hello")) {
     fine(str title)  => print(title)
     NotFound(str s)  => print($"No post at {s}")
 }
@@ -554,7 +554,7 @@ Island UserProfile(User user) {
     server(codenameB) { return generateNewCodename() }
 
     return <MainLayout>
-        {defuse user {
+        {defuse(user) {
             Admin(_, str name, u3 level) => {
                 <h1>Admin Panel: {name}</h1>
                 <p>Access Level: {level}</p>
