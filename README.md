@@ -729,7 +729,7 @@ Island UserProfile(User user) {
 * [ ] Make comment's syntax simpler
 * [ ] Seperate README.md to multiple documents (it's getting huge)
 * [ ] Write formal docs/RFCs
-* [ ] Joy-style testing:
+* [ ] Joy-style testing, also SOTA mocking:
 ```joy
 quiz("User creation") {
     User user = makeAGoodOne()
