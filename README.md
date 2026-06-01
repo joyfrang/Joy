@@ -726,5 +726,16 @@ Island UserProfile(User user) {
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [ ] How parameters should be passed in function calls?
+* [ ] Make comment's syntax simpler
+* [ ] Seperate README.md to multiple documents (it's getting huge)
+* [ ] Write formal docs/RFCs
+* [ ] Joy-style testing:
+```joy
+quiz("User creation") {
+    User user = makeAGoodOne()
+    ensure(user.name == "Matin") ~> ensure is a compiler-known function
+    ensure(user.age == 20)
+}
+```
 
 **Proof of Concept:** You can view the Joy demo project, including example code and implementation details, [at the demo repository](https://github.com/joyfrang/Joy/tree/mom/Demo).
