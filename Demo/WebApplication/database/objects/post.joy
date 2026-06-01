@@ -21,7 +21,7 @@ thing Post {
 Declares how this thing maps to a database table. <~
 Only fields that need non-default behavior are listed. <~
 All other fields are persisted using their field name as the column name. <~
-setup joy:database/table Post {
+setup(joy:database/table for Post) {
     table: "posts"
     id: primaryKey, autoIncrement
     date: dbDate
@@ -31,7 +31,7 @@ setup joy:database/table Post {
 Declares JSON serialization behavior. <~
 Only fields that deviate from defaults are listed. <~
 By default, all fields serialize using their field name as the JSON key. <~
-setup joy:json/object Post {
+setup(joy:json/object for Post) {
     id: ignore
     title: key("PostTitle")
 }

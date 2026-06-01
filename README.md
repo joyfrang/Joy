@@ -320,20 +320,20 @@ bomb<str, PostError> getPostTitle(str permalink) {
 Joy provides a general `setup` block for attaching metadata and behavior to `thing`s. Rather than one-off language features, `setup` is an extensible protocol: the namespace before the `/` identifies the bundle providing the behavior, and the path after identifies the configuration type.
 
 ```joy
-setup joy:database/table Post { ... }      ~> built-in Joy database ORM
-setup joy:json/object Post { ... }         ~> built-in Joy JSON serialization
-setup someBundle:graphql/type User { ... } ~> a third-party bundle's config
+setup(joy:database/table for Post) { ... }      ~> built-in Joy database ORM
+setup(joy:json/object for Post) { ... }         ~> built-in Joy JSON serialization
+setup(someBundle:graphql/type for User) { ... } ~> a third-party bundle's config
 ```
 
 Generic types may also be configured:
 
 ```joy
-setup someBundle:schema/type Response<T> {
+setup(someBundle:schema/type for Response<T>) {
     ...
 }
 ```
 
-### `setup joy:database/table`
+### `setup(joy:database/table for ...)`
 
 Declares how a `thing` maps to a database table. Only fields that need non-default behavior are listed — all other fields are persisted using their field name as the column name.
 
@@ -353,7 +353,7 @@ thing Post {
     }
 }
 
-setup joy:database/table Post {
+setup(joy:database/table for Post) {
     table: "posts"
     id: primaryKey, autoIncrement
     date: dbDate
@@ -372,12 +372,12 @@ Valid field options:
 | `references(OtherThing.field)` | Foreign key relationship |
 | `nullable` | Field may be null in the database |
 
-### `setup joy:json/object`
+### `setup(joy:json/object for ...)`
 
 Declares JSON serialization behavior. Only fields that deviate from defaults are listed. By default, all fields serialize using their field name as the JSON key.
 
 ```joy
-setup joy:json/object Post {
+setup(joy:json/object for Post) {
     id: ignore
     title: key("PostTitle")
 }
@@ -435,15 +435,28 @@ all(...)
 
 ### Memory Model
 
+Joy's memory model is designed to be simple and correct by default, with zero manual memory management.
+
 * **Automatic ARC**: The compiler inserts `inc_ref` and `dec_ref` calls; developers never manage them manually.
-* **Clone-by-default with structural sharing**: Assignments perform a logical clone. Internally, the compiler implements this via persistent data structures and copy-on-write (COW), so unchanged parts of a structure are shared rather than copied. The result is value semantics without the cost of always copying everything.
+* **Clone-by-default with structural sharing**: Assignment performs a logical clone. Internally, the compiler implements this via persistent data structures and copy-on-write (COW), so unchanged parts of a structure are shared rather than copied. The result is value semantics without the cost of always copying everything.
 
   ```joy
-  User a = b       ~> logical clone — a is independent from b
-  User a = share b ~> explicit shared reference via ARC
+  User a = b   ~> logical clone — a is independent from b
   ```
 
-* **No Cycles**: Reference cycles are disallowed; the compiler rejects cyclic ownership. Use alternative patterns (IDs, one-way ownership) to avoid cycles.
+* **No Ownership Cycles**: Reference cycles in the ownership graph are disallowed; the compiler rejects them. This is rarely a practical constraint for web app data models, which are naturally trees or DAGs. When entities need to reference each other (e.g. a `Post` referencing its `User` author), the correct model is ID-based rather than pointer-based:
+
+  ```joy
+  thing User {
+      User(u5 id, str name)
+  }
+
+  thing Post {
+      Post(u5 id, str title, u5 authorId)   ~> not User author — just an ID
+  }
+  ```
+
+  The compiler rejecting ownership cycles is a feature, not a limitation — it pushes models toward the correct, cache-friendly, serialization-friendly ID-based representation.
 
 ### Concurrent Blocks: `branch` and `server`
 
@@ -451,17 +464,13 @@ all(...)
 
 #### `branch`
 
-Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`. By default, `bring` performs a logical clone (COW). Use `bring share` for a shared ARC reference.
+Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`. `bring` performs a logical clone (COW).
 
 ```joy
 User user = User("Matin")
 
-branch(bring User user) {       ~> clone-by-value capture
+branch(bring User user) {
     print(user.name)
-}
-
-branch(bring share User user) { ~> shared (atomic ARC) capture
-    user.name = "Notmatin"
 }
 ```
 
@@ -489,6 +498,99 @@ The `server` block initiates an RPC call stack on the server. Results are consum
    ```joy
    bucket<bit> b = (5, Wait)
    ```
+
+---
+
+## Cache
+
+Joy provides first-class cache support using the same `setup` protocol as the database and JSON systems, keeping it backend-agnostic.
+
+### Provider Configuration
+
+```joy
+bring joy:cache/redis
+
+Cache configureCache() {
+    return (cacheProvider: redis.provider(connectionString: "..."))
+}
+```
+
+### Output Cache
+
+Output caching is a property of a `View`, declared via `setup`. The compiler wraps the View transparently — no `cache.get()`/`cache.set()` noise in the View body.
+
+```joy
+View Page(str permalink) {
+    maybe<Post> post = query(db.posts) {
+        where(it.permalink == permalink)
+        first()
+    }
+    ~> ...
+}
+
+setup(joy:cache/output for Page) {
+    key: permalink          ~> cache is keyed by the route param
+    ttl: 5m
+    vary: ["Accept-Language"]
+    tags: ["posts"]         ~> for tag-based invalidation
+}
+```
+
+### KV Cache
+
+KV stores are declared as named, typed stores via `setup`, then accessed through the `cache` global — mirroring how `db` works for database tables.
+
+```joy
+thing CachePolicy {
+    Ttl(u5 seconds)
+    SlidingTtl(u5 seconds)     ~> resets TTL on each access
+    Eternal()                  ~> never evicts
+}
+
+setup(joy:cache/kv for SessionStore) {
+    key: str
+    value: str
+    policy: Ttl(900)           ~> 15 min TTL
+}
+```
+
+Usage:
+
+```joy
+maybe<str> session = cache.SessionStore.get("user:123")
+
+defuse(session) {
+    some(str s) => useSession(s)
+    noth        => forbidden()
+}
+
+cache.SessionStore.set("user:123", token)
+cache.SessionStore.delete("user:123")
+```
+
+The type safety comes for free — `SessionStore` only accepts `str` keys and `str` values, enforced at compile time.
+
+### Tag-based Invalidation
+
+```joy
+cache.invalidate(tag: "posts")
+cache.invalidate(store: SessionStore, key: "user:123")
+```
+
+Because the compiler knows the shape of every `setup(joy:cache/...)` block, it can statically validate that tags exist and warn on dead invalidation calls.
+
+### Server Block Cache
+
+The `server` block accepts an optional `cache:` argument, keyed automatically by the captured `bring` variables:
+
+```joy
+bucket<str> profile = ()
+
+server(profile, cache: Ttl(60s), bring str userId) {
+    str data = db.users.get(userId).name
+    return data
+}
+```
 
 ---
 
@@ -620,6 +722,7 @@ Island UserProfile(User user) {
 * [x] Should there be implementations for `thing`s, like `user.add(...)`, or `user.remove(...)`
 * [x] Error handling model (`bomb`, `defuse`, `rise`)
 * [x] Validation system (`validate` blocks on constructors, plain function calls)
+* [x] Cache system (`setup(joy:cache/output ...)`, `setup(joy:cache/kv ...)`, `server` block cache)
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [ ] How parameters should be passed in function calls?

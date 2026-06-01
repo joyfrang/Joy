@@ -8,7 +8,7 @@ expose bit isValid() {
 }
 
 noth arrays() {
-    bit[] bits = [1, 0, 1] ~> dynamically sized array
+    bit[] bits = [1, 0, 1] ~> runtime-managed collection
     
     maybe<bit> firstTrue = query(bits) {
         where(it == 1)
