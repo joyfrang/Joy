@@ -729,6 +729,8 @@ Island UserProfile(User user) {
 * [ ] Make comment's syntax simpler
 * [ ] Seperate README.md to multiple documents (it's getting huge)
 * [ ] Write formal docs/RFCs
+* [ ] Find better names to replace with "cont" and "impl"
+* [ ] Update syntax: `impl(Eatable for Food) {...}`
 * [ ] Joy-style testing, also SOTA mocking:
 ```joy
 quiz("User creation") {
