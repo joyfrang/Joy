@@ -12,5 +12,5 @@ impl Pair<A, B> {
 }
 
 noth functionThatExists(Eatable food, bit fastOrSlow) {
-    implementation here <~
+    implementation here ~
 }

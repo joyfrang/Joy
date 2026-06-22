@@ -18,9 +18,9 @@ thing Post {
     }
 }
 
-Declares how this thing maps to a database table. <~
-Only fields that need non-default behavior are listed. <~
-All other fields are persisted using their field name as the column name. <~
+Declares how this thing maps to a database table. ~
+Only fields that need non-default behavior are listed. ~
+All other fields are persisted using their field name as the column name. ~
 setup(joy:database/table for Post) {
     table: "posts"
     id: primaryKey, autoIncrement
@@ -28,21 +28,22 @@ setup(joy:database/table for Post) {
     permalink: unique
 }
 
-Declares JSON serialization behavior. <~
-Only fields that deviate from defaults are listed. <~
-By default, all fields serialize using their field name as the JSON key. <~
+Declares JSON serialization behavior. ~
+Only fields that deviate from defaults are listed. ~
+By default, all fields serialize using their field name as the JSON key. ~
 setup(joy:json/object for Post) {
     id: ignore
     title: key("PostTitle")
 }
 
-cont ThingThatGetsStoredInDatabase { ~> contracts are the same as Interfaces or Traits in other languages
+contracts are the same as Interfaces or Traits in other languages ~
+cont ThingThatGetsStoredInDatabase {
     bit isPublic()
     bit isUserContent(bit isFromEu)
 }
 
-Instance methods take 'self' as their first parameter, typed as the thing. <~
-Called as post.isPublic(), post.isUserContent(isFromEu: true), etc. <~
+Instance methods take 'self' as their first parameter, typed as the thing. ~
+Called as post.isPublic(), post.isUserContent(isFromEu: true), etc. ~
 impl Post:ThingThatGetsStoredInDatabase {
     bit isPublic(Post self) {
         return true
@@ -57,8 +58,9 @@ impl Post:ThingThatGetsStoredInDatabase {
     }
 }
 
-impl Post { ~> impl without a contract adds instance methods directly to the thing
+impl without a contract adds instance methods directly to the thing ~
+impl Post {
     noth delete(Post self) {
-        implementation to delete the post from the database <~
+        implementation to delete the post from the database ~
     }
 }

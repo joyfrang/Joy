@@ -1,5 +1,6 @@
 bring joy:database/postgres
 
 Database configureDatabase() {
-    return (databaseProvider: postgres.provider(connectionString: "wow")) ~> db configuration
+    db configuration ~
+    return (databaseProvider: postgres.provider(connectionString: "wow"))
 }

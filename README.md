@@ -19,24 +19,14 @@ Joy's design is guided by the "Joyful Programming" paradigm: a pragmatic approac
 
 ### Comments
 
-Joy uses arrow-based comment syntax. The arrow points at the commented text.
+Joy uses a single, simple comment syntax: `~` marks the end of a comment, and everything before it on that line is commented out.
 
 ```joy
-This is a leading comment <~
+This is a full-line comment ~
+this one explains the next code line ~
 noth something(Eatable food) {
-    User u = getUser() ~> this is a trailing comment
+    User u = getUser()
 }
-```
-
-For multi-line block comments, use `~>>` and `<<~`. Everything between them is commented:
-
-```joy
-~>>
-This entire block is commented out.
-noth oldImplementation() {
-    ...
-}
-<<~
 ```
 
 ### Data Modeling with `thing`
@@ -88,7 +78,7 @@ bomb<str, PermalinkError> makePermalink(str value) {
 
 bomb<Post, PostError> createPost(str permalink) {
     str validPermalink = rise makePermalink(permalink)
-    ~> ... build the post
+    ... build the post ~
 }
 ```
 
@@ -106,7 +96,8 @@ thing DateRange {
         if(start == end) { return EmptyRange(start) }
         return fine()
     },
-    Forever() ~> no validate block — constructing this returns DateRange directly
+    no validate block — constructing this returns DateRange directly ~
+    Forever()
 }
 ```
 
@@ -158,7 +149,8 @@ noth feedSomeone(Eatable hungry) {
 
 noth example() {
     User user = Admin(id: 1, name: "Matin", accessLevel: 250)
-    feedSomeone(user) ~> User implements Eatable, so this works
+    User implements Eatable, so this works ~
+    feedSomeone(user)
 }
 ```
 
@@ -167,11 +159,12 @@ noth example() {
 ```joy
 impl User {
     noth deactivate(User self) {
-        deactivate this user <~
+        deactivate this user ~
     }
 }
 
-user.deactivate() ~> called as
+called as ~
+user.deactivate()
 ```
 
 ### Generics
@@ -267,7 +260,7 @@ thing PostError {
 }
 
 bomb<Post, PostError> getPost(str permalink) {
-    ~> ...
+    ... ~
 }
 
 defuse(getPost(permalink: "hello")) {
@@ -306,7 +299,8 @@ defuse(findTitle(permalink: "hello")) {
 
 ```joy
 bomb<str, PostError> getPostTitle(str permalink) {
-    str title = rise findTitle(permalink) ~> if findTitle detonates, the error rises to our caller
+    if findTitle detonates, the error rises to our caller ~
+    str title = rise findTitle(permalink)
     return fine(title.uppercase())
 }
 ```
@@ -320,9 +314,14 @@ bomb<str, PostError> getPostTitle(str permalink) {
 Joy provides a general `setup` block for attaching metadata and behavior to `thing`s. Rather than one-off language features, `setup` is an extensible protocol: the namespace before the `/` identifies the bundle providing the behavior, and the path after identifies the configuration type.
 
 ```joy
-setup(joy:database/table for Post) { ... }      ~> built-in Joy database ORM
-setup(joy:json/object for Post) { ... }         ~> built-in Joy JSON serialization
-setup(someBundle:graphql/type for User) { ... } ~> a third-party bundle's config
+built-in Joy database ORM ~
+setup(joy:database/table for Post) { ... }
+
+built-in Joy JSON serialization ~
+setup(joy:json/object for Post) { ... }
+
+a third-party bundle's config ~
+setup(someBundle:graphql/type for User) { ... }
 ```
 
 Generic types may also be configured:
@@ -441,7 +440,8 @@ Joy's memory model is designed to be simple and correct by default, with zero ma
 * **Clone-by-default with structural sharing**: Assignment performs a logical clone. Internally, the compiler implements this via persistent data structures and copy-on-write (COW), so unchanged parts of a structure are shared rather than copied. The result is value semantics without the cost of always copying everything.
 
   ```joy
-  User a = b   ~> logical clone — a is independent from b
+  logical clone — a is independent from b ~
+  User a = b
   ```
 
 * **No Ownership Cycles**: Reference cycles in the ownership graph are disallowed; the compiler rejects them. This is rarely a practical constraint for web app data models, which are naturally trees or DAGs. When entities need to reference each other (e.g. a `Post` referencing its `User` author), the correct model is ID-based rather than pointer-based:
@@ -452,7 +452,8 @@ Joy's memory model is designed to be simple and correct by default, with zero ma
   }
 
   thing Post {
-      Post(u5 id, str title, u5 authorId)   ~> not User author — just an ID
+      not User author — just an ID ~
+      Post(u5 id, str title, u5 authorId)
   }
   ```
 
@@ -464,19 +465,32 @@ Joy's memory model is designed to be simple and correct by default, with zero ma
 
 #### `branch`
 
-Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`. `bring` performs a logical clone (COW).
+Spawns an async task tied to the current scope. Exiting the scope cancels all child branches. Variables from the parent scope must be explicitly captured with `bring`, which performs a copy-on-write (COW) clone. Because every captured variable is an independent copy, `branch` has **no shared mutable state** — data races are impossible by construction.
+
+A `branch` may optionally take a `bucket` as its first argument. When a bucket is provided, the branch's return value fills the bucket:
 
 ```joy
 User user = User("Matin")
 
+Fire-and-forget branch — runs a task, no return value collected: ~
 branch(bring User user) {
     print(user.name)
 }
+
+Branch with a bucket — streams its return value back: ~
+bucket<str> tosBody = ()
+
+branch(tosBody, bring str userLocale) {
+    str tos = getTosForLocale(userLocale)
+    return tos
+}
 ```
+
+Results are consumed via `<Wait>` (see Asynchronous UI below).
 
 #### `server`
 
-Spawns a server-side async task from within a client-side `Island`. Takes a `bucket` as its first argument, which it uses to send results back. Variables from the Island scope are captured with `bring`.
+Spawns a server-side async task **from within a client-side `Island`**. Like `branch`, it takes an optional `bucket` as its first argument and runs in a structured concurrency scope. The difference is that `server` initiates an RPC call stack on the server — the block body executes server-side, not client-side. Variables from the Island scope are captured with `bring` (COW):
 
 ```joy
 bucket<str> codenameB = (1, Wait)
@@ -486,8 +500,6 @@ server(codenameB, bring str userLocale) {
     return codename
 }
 ```
-
-The `server` block initiates an RPC call stack on the server. Results are consumed via `<Wait>`.
 
 #### Key Features
 
@@ -525,14 +537,16 @@ View Page(str permalink) {
         where(it.permalink == permalink)
         first()
     }
-    ~> ...
+    ... ~
 }
 
 setup(joy:cache/output for Page) {
-    key: permalink          ~> cache is keyed by the route param
+    cache is keyed by the route param ~
+    key: permalink
     ttl: 5m
     vary: ["Accept-Language"]
-    tags: ["posts"]         ~> for tag-based invalidation
+    for tag-based invalidation ~
+    tags: ["posts"]
 }
 ```
 
@@ -543,14 +557,17 @@ KV stores are declared as named, typed stores via `setup`, then accessed through
 ```joy
 thing CachePolicy {
     Ttl(u5 seconds)
-    SlidingTtl(u5 seconds)     ~> resets TTL on each access
-    Eternal()                  ~> never evicts
+    resets TTL on each access ~
+    SlidingTtl(u5 seconds)
+    never evicts ~
+    Eternal()
 }
 
 setup(joy:cache/kv for SessionStore) {
     key: str
     value: str
-    policy: Ttl(900)           ~> 15 min TTL
+    15 min TTL ~
+    policy: Ttl(900)
 }
 ```
 
@@ -599,16 +616,123 @@ server(profile, cache: Ttl(60s), bring str userId) {
 Joy has three import namespaces, all using the same `bring` syntax:
 
 ```joy
-bring joy:database/postgres     ~> Joy standard library
-bring author:packageName/file   ~> approved third-party bundle
-bring local:path/to/file        ~> project-local file (no .joy extension, path from project root)
+Joy standard library ~
+bring joy:database/postgres
+approved third-party bundle ~
+bring author:packageName/file
+project-local file (no .joy extension, path from project root) ~
+bring local:path/to/file
 ```
+
+### Exports / Visibility
+
+By default, every declaration in a `.joy` file is private to that file — `thing`s, functions, `View`s, `Island`s, and `Layout`s are not visible to other files. To make something importable by other files, prefix it with `expose`:
+
+```joy
+expose thing Settings {
+    Settings(str licenseKey, str apiKey)
+}
+
+expose View Calender() {
+    return <PrivateCalender/>
+}
+
+expose bit isValid() {
+    return 1
+}
+
+expose Layout HtmlShell(Renderable children) {
+    return <html>
+        <head>...</head>
+        <body>{children}</body>
+    </html>
+}
+```
+
+`expose` is the Joy equivalent of `export` or `public`. Without it, a declaration is file-private and invisible to `bring`.
 
 ---
 
 ## The Joy Web Framework
 
 The framework extends Joy's language principles to web development. Functions are server-side by default for a secure-by-default architecture.
+
+### App Entrypoint
+
+Every Joy web application has an `entry.joy` file at the project root that defines an `entry()` function returning a `Wapp` value:
+
+```joy
+Wapp entry() {
+    return (port: 8080, tls: false)
+}
+```
+
+`Wapp` is a built-in type with fields `port` and `tls`. The `entry()` function is the single entrypoint the compiler invokes to configure and start the application server.
+
+### Routing
+
+Joy uses a **file-based routing** system similar to Next.js App Router. Routes are defined by the filesystem structure under the `wapp/` directory.
+
+**Page convention:** The `View` or `Island` named `Page` in a file receives the page load for that route. The file name determines the URL path:
+
+```
+wapp/
+  index.joy              → /
+  blog/
+    layout.joy           → layout wrapper for /blog/*
+    [permalink]/
+      [permalink].joy    → /blog/:permalink
+    date/
+      date.joy           → /blog/date
+  tos/
+    tos.joy              → /tos
+  error.joy              → special: error views (403, 404, etc.)
+```
+
+**Dynamic segments** use folder and file brackets `[param]`. The `Page` component receives route parameters as typed function arguments:
+
+```joy
+wapp/blog/[permalink]/[permalink].joy ~
+View Page(str requestedPermalink) {
+    maybe<Post> post = query(db.posts) {
+        where(permalink == requestedPermalink)
+        first()
+    }
+    ... ~
+}
+```
+
+**Layouts** are files named `layout.joy`. A `Layout` in a directory automatically wraps all pages in that directory and its subdirectories:
+
+```joy
+wapp/blog/layout.joy ~
+Layout BlogLayout(Renderable children) {
+    return (parent: html.HtmlShell, {children})
+}
+```
+
+**Index pages:** Files named `index.joy` serve as the root of a directory.
+
+**Error pages:** The `error.joy` file defines error views by naming `View`s after HTTP status codes:
+
+```joy
+View 403() {
+    return <strong>Whoops!</strong>
+}
+
+View 404() {
+    return <strong>Oops!</strong>
+}
+```
+
+For cases where file-based routing is insufficient, pages can also be annotated explicitly:
+
+```joy
+#page("/custom-path")
+View MyPage() {
+    return <div>...</div>
+}
+```
 
 ### Component Model
 
@@ -658,7 +782,7 @@ $ lets test                   # Run tests
 ## A Complete Example: "Joyful Profile" App
 
 ```joy
-main.joy <~
+main.joy ~
 
 thing User {
     Admin(u5 id, str name, u3 accessLevel)
@@ -726,7 +850,7 @@ Island UserProfile(User user) {
 * [ ] JSON-like collections (e.g., for passing type-safe configurations around)
 * [ ] It would be cool to have a name for each [Epoch release](https://antfu.me/posts/epoch-semver?utm_source=joyfrang#:~:text=The%20format%20is,compatible%20bug%20fixes.)
 * [ ] How parameters should be passed in function calls?
-* [ ] Make comment's syntax simpler
+* [x] Make comment's syntax simpler
 * [ ] Seperate README.md to multiple documents (it's getting huge)
 * [ ] Write formal docs/RFCs
 * [ ] Find better names to replace with "cont" and "impl"
@@ -735,7 +859,8 @@ Island UserProfile(User user) {
 ```joy
 quiz("User creation") {
     User user = makeAGoodOne()
-    ensure(user.name == "Matin") ~> ensure is a compiler-known function
+    ensure is a compiler-known function ~
+    ensure(user.name == "Matin")
     ensure(user.age == 20)
 }
 ```
